@@ -1,99 +1,276 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.3</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	<groupId>com.rdam</groupId>
-	<artifactId>backend</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>backend</name>
-	<description>Backend del Sistema RDAM</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
-	<properties>
-		<java.version>17</java.version>
-	</properties>
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc</artifactId>
-		</dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>com.mysql</groupId>
-			<artifactId>mysql-connector-j</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+    <modelVersion>4.0.0</modelVersion>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <!-- Spring Boot 3.4.x — estable, compatible con Java 17 y 21 -->
+        <version>3.4.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.rdam</groupId>
+    <artifactId>backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>backend</name>
+    <description>Backend del Sistema RDAM</description>
+
+    <properties>
+        <!-- Java 21 LTS es recomendado con Spring Boot 3.4+ -->
+        <java.version>21</java.version>
+        <!-- Versión centralizada de JJWT para no repetirla 3 veces -->
+        <jjwt.version>0.12.6</jjwt.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ============================================
+             WEB
+             ============================================ -->
+
+        <!--
+            Starter web: incluye Spring MVC, Tomcat embebido,
+            Jackson (JSON) y todo lo necesario para los @RestController.
+            Reemplaza 'spring-boot-starter-webmvc' que no es un artefacto válido.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--
+            Validación de DTOs: habilita @Valid, @NotNull, @Email,
+            @Size, etc. en los @RequestBody de los controladores.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+
+        <!-- ============================================
+             SEGURIDAD
+             ============================================ -->
+
+        <!--
+            Spring Security: provee el SecurityFilterChain,
+            @PreAuthorize, BCryptPasswordEncoder, etc.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!--
+            JJWT API: las interfaces para crear y parsear JWT.
+            Solo el API en 'compile' scope.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <!--
+            JJWT Implementation: la implementación real.
+            Solo se necesita en runtime, no en compilación.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            JJWT Jackson: serialización/deserialización del payload
+            JWT usando Jackson (que ya viene con spring-boot-starter-web).
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+
+        <!-- ============================================
+             PERSISTENCIA
+             ============================================ -->
+
+        <!--
+            JPA + Hibernate: habilita @Entity, @Repository,
+            JpaRepository, @Version, @Transactional, etc.
+            Sin esto, nuestras entidades no funcionan.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!--
+            Driver JDBC de MySQL 8+.
+            scope runtime: solo se necesita cuando la app corre,
+            no para compilar el código Java.
+        -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            Flyway core: motor de migraciones de base de datos.
+            Ejecuta los scripts V1__, V2__, etc. al arrancar.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!--
+            Flyway MySQL: soporte específico para MySQL/MariaDB.
+            Requerido además del flyway-core desde Flyway 9+.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
+
+        <!-- ============================================
+             REDIS
+             ============================================ -->
+
+        <!--
+            Spring Data Redis: provee RedisTemplate y
+            StringRedisTemplate para guardar/leer tokens
+            efímeros (OTP y tokens ciudadano) con TTL.
+            Usa Lettuce como cliente por defecto.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+
+        <!-- ============================================
+             EMAIL
+             ============================================ -->
+
+        <!--
+            Spring Mail: provee JavaMailSender para enviar
+            emails SMTP. Lo usamos para OTP y notificaciones.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+
+        <!-- ============================================
+             ALMACENAMIENTO — MinIO
+             ============================================ -->
+
+        <!--
+            Cliente oficial de MinIO para Java.
+            Usamos su API para subir y eliminar los PDFs
+            de certificados en el bucket privado.
+        -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.11</version>
+        </dependency>
+
+
+        <!-- ============================================
+             UTILIDADES
+             ============================================ -->
+
+        <!--
+            Lombok: genera getters, setters, constructores,
+            builders con anotaciones (@Getter, @Builder, etc.)
+            Reduce boilerplate sin afectar el bytecode final.
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+            DevTools: recarga automática de la app al guardar,
+            LiveReload en el browser. Solo en desarrollo.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+
+        <!-- ============================================
+             TESTING
+             ============================================ -->
+
+        <!--
+            Starter test: incluye JUnit 5, Mockito, MockMvc,
+            AssertJ y Spring Test. Todo lo necesario para
+            tests unitarios y de integración.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Spring Security Test: provee @WithMockUser,
+            mockMvc.with(user(...)), etc. para testear
+            endpoints protegidos sin levantar un servidor real.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
