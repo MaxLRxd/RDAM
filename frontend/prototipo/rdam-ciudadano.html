@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RDAM · Portal Ciudadano</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f0f;
+    --ink-2: #3a3a3a;
+    --ink-3: #888;
+    --ink-4: #bbb;
+    --line: #e8e8e8;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --accent: #1a3a6b;
+    --accent-light: #2555a0;
+    --amber: #b87a00;
+    --green: #156a40;
+    --red: #9b2525;
+    --r: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky; top: 0; z-index: 90;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 0 32px;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; }
+  .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .nav-title { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.02em; }
+  .nav-sub { font-size: 11px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; }
+  .nav-sep { width: 1px; height: 20px; background: var(--line); margin: 0 12px; }
+  .nav-link {
+    font-size: 13px; color: var(--ink-2); text-decoration: none;
+    padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px;
+    transition: border-color .15s, color .15s; cursor: pointer;
+  }
+  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 64px 32px 56px;
+    max-width: 720px; margin: 0 auto;
+    text-align: center;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 20px; padding: 4px 12px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 4vw, 40px); font-weight: 300;
+    color: var(--ink); line-height: 1.2; margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 strong { font-weight: 600; }
+  .hero p { color: var(--ink-2); font-size: 15px; max-width: 480px; margin: 0 auto; }
+
+  /* ─── STEPS ─── */
+  .steps {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    padding: 0 32px 40px; max-width: 600px; margin: 0 auto;
+  }
+  .step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    background: var(--accent); color: #fff;
+  }
+  .step-num.done { background: var(--green); }
+  .step-label { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+  .step-line { flex: 1; height: 1px; background: var(--line); min-width: 32px; margin-bottom: 18px; }
+
+  /* ─── LAYOUT ─── */
+  .layout {
+    max-width: 960px; margin: 0 auto;
+    padding: 0 32px 80px;
+    display: grid; grid-template-columns: 1fr 300px; gap: 24px;
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+  .card-top {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-top h2 { font-size: 16px; font-weight: 600; }
+  .card-body { padding: 24px; }
+
+  /* ─── FORM ─── */
+  .f-group { margin-bottom: 18px; }
+  .f-label {
+    display: block; margin-bottom: 6px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--ink-2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .f-input, .f-select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 6px;
+    font-family: 'Sora', sans-serif; font-size: 14px;
+    color: var(--ink); background: var(--bg);
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    appearance: none;
+  }
+  .f-input:focus, .f-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,58,107,.08);
+    background: var(--surface);
+  }
+  .f-hint { margin-top: 4px; font-size: 12px; color: var(--ink-3); }
+  .f-hint a { color: var(--accent-light); }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 6px;
+    font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-light); }
+  .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--ink-3); }
+  .btn-amber { background: var(--amber); color: #fff; }
+  .btn-amber:hover { filter: brightness(1.1); }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.03em;
+  }
+  .b-pending { background: rgba(184,122,0,.1); color: var(--amber); }
+  .b-rejected { background: rgba(155,37,37,.1); color: var(--red); }
+  .b-issued { background: rgba(21,106,64,.1); color: var(--green); border: 1px solid rgba(21,106,64,.2); }
+
+  /* ─── ALERTS ─── */
+  .alert {
+    padding: 12px 14px; border-radius: 6px;
+    font-size: 13px; line-height: 1.6;
+    display: flex; gap: 10px; margin-bottom: 18px;
+    border: 1px solid transparent;
+  }
+  .a-info { background: rgba(26,58,107,.05); border-color: rgba(26,58,107,.12); color: var(--accent); }
+  .a-warn { background: rgba(184,122,0,.06); border-color: rgba(184,122,0,.15); color: var(--amber); }
+  .a-ok { background: rgba(21,106,64,.06); border-color: rgba(21,106,64,.15); color: var(--green); }
+
+  /* ─── OTP ─── */
+  .otp { display: flex; gap: 8px; justify-content: center; margin: 18px 0; }
+  .otp-d {
+    width: 44px; height: 52px; text-align: center;
+    border: 1px solid var(--line); border-radius: 6px;
+    font-size: 22px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--accent);
+    outline: none; transition: border-color .15s;
+  }
+  .otp-d:focus { border-color: var(--accent); background: var(--surface); }
+
+  /* ─── SOLICITUDES ─── */
+  .sol-item {
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
+  }
+  .sol-item:last-child { border-bottom: none; }
+  .sol-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-light); margin-bottom: 2px; }
+  .sol-dni { font-size: 14px; font-weight: 500; }
+  .sol-meta { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+
+  /* ─── TIMELINE ─── */
+  .tl { list-style: none; padding-left: 20px; position: relative; }
+  .tl::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .tl li { position: relative; padding: 0 0 14px 14px; font-size: 13px; }
+  .tl li::before {
+    content: ''; position: absolute; left: -6px; top: 5px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-light); border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--accent-light);
+  }
+  .tl-action { font-weight: 600; }
+  .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+  .tl-detail { color: var(--ink-2); margin-top: 1px; }
+
+  /* ─── SIDEBAR CARDS ─── */
+  .s-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 16px; }
+  .s-head { background: var(--accent); padding: 12px 16px; color: #fff; font-size: 13px; font-weight: 600; }
+  .s-body { padding: 14px 16px; }
+  .s-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .s-row:last-child { border-bottom: none; }
+  .s-key { color: var(--ink-2); }
+  .s-val { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 12px; }
+
+  /* ─── PDF PREVIEW ─── */
+  .pdf-box { border: 1.5px dashed var(--line); border-radius: 8px; padding: 28px; text-align: center; background: var(--bg); }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .screen.active { animation: fadeUp .3s ease forwards; }
+
+  /* ─── POPUP ─── */
+  .popup-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .popup-box {
+    background: var(--surface); border-radius: 12px;
+    width: 100%; max-width: 420px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.12);
+    border: 1px solid var(--line);
+  }
+  .popup-icon { font-size: 36px; margin-bottom: 14px; }
+  .popup-box h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .popup-box p { font-size: 14px; color: var(--ink-2); line-height: 1.65; margin-bottom: 24px; }
+  .popup-actions { display: flex; gap: 10px; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    background: var(--ink); color: #fff;
+    padding: 10px 18px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    display: none; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2);
+  }
+  .toast.show { display: flex; }
+  .divider { height: 1px; background: var(--line); margin: 18px 0; }
+
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; padding: 0 16px 60px; }
+    .hero { padding: 40px 16px 32px; }
+    .steps { padding: 0 16px 32px; }
+    nav { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Popup confirmación envío -->
+<div class="popup-overlay" id="popup" style="display:none">
+  <div class="popup-box">
+    <div class="popup-icon">💳</div>
+    <h3>Aviso antes de continuar</h3>
+    <p>Al enviar esta solicitud, deberá <strong>abonar el arancel de emisión ($5.000)</strong> para obtener su certificado. El pago es obligatorio independientemente del resultado.<br><br>¿Desea continuar con la solicitud?</p>
+    <div class="popup-actions">
+      <button class="btn btn-ghost btn-full" onclick="closePopup()">Cancelar</button>
+      <button class="btn btn-primary btn-full" onclick="confirmSend()">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-dot"></div>
+    <div>
+      <div class="nav-title">Sistema RDAM</div>
+      <div class="nav-sub">Provincia de Santa Fe</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="nav-link" onclick="switchScreen('mis-solicitudes')">Mis Solicitudes</span>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-tag">🏛 Registro Oficial · Gobierno de Santa Fe</div>
+  <h1>Certificado del <strong>Registro de<br>Deudores Alimentarios Morosos</strong></h1>
+  <p>Consulte si una persona figura en el registro provincial. El certificado es informativo y tiene vigencia de 90 días.</p>
+</div>
+
+<!-- Steps -->
+<div class="steps">
+  <div class="step-item"><div class="step-num">1</div><div class="step-label">Datos</div></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num">2</div><div class="step-label">Email</div></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num">3</div><div class="step-label">Pago</div></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-num done">4</div><div class="step-label">Certificado</div></div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+  <div>
+
+    <!-- PANTALLA 1: Formulario -->
+    <div class="screen active" id="screen-form">
+      <div class="card">
+        <div class="card-top"><span>📋</span><h2>Nueva Solicitud de Certificado</h2></div>
+        <div class="card-body">
+          <div class="alert a-info">ℹ️ <span>El arancel se cobra por la emisión del certificado, no por la deuda. Cualquier persona puede solicitar el certificado de un tercero.</span></div>
+          <div class="f-group">
+            <label class="f-label">DNI / CUIL del consultado</label>
+            <input class="f-input" type="text" placeholder="Ej: 30123456 o 20-30123456-7" maxlength="13">
+            <p class="f-hint">Sin puntos para DNI. Con guiones para CUIL.</p>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Su correo electrónico</label>
+            <input class="f-input" type="email" placeholder="ejemplo@correo.com">
+            <p class="f-hint">Recibirá el código de verificación aquí.</p>
+          </div>
+          <div class="f-group">
+            <label class="f-label">Circunscripción Judicial</label>
+            <select class="f-select">
+              <option value="" disabled selected>— Seleccione su circunscripción —</option>
+              <option value="1">Circunscripción I · Santa Fe</option>
+              <option value="2">Circunscripción II · Rosario</option>
+              <option value="3">Circunscripción III · Venado Tuerto</option>
+              <option value="4">Circunscripción IV · Reconquista</option>
+              <option value="5">Circunscripción V · Rafaela</option>
+            </select>
+            <p class="f-hint">¿No sabe a qué circunscripción pertenece? <a href="https://www.justiciasantafe.gov.ar/index.php/poder-judicial/guia-judicial/" target="_blank">Consultá la Guía Judicial →</a></p>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-primary btn-full" onclick="showPopup()">Enviar solicitud →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA 2: Validar email -->
+    <div class="screen" id="screen-validar-email">
+      <div class="card">
+        <div class="card-top"><span>📧</span><h2>Validación de Email</h2></div>
+        <div class="card-body">
+          <div class="alert a-ok">✅ <span>Enviamos un código de 6 dígitos a <strong>usuario@ejemplo.com</strong>. Válido por 15 minutos.</span></div>
+          <p style="font-size:13px;color:var(--ink-3);text-align:center;margin-bottom:4px">Ingrese el código recibido</p>
+          <div class="otp">
+            <input class="otp-d" maxlength="1" oninput="moveFocus(this,'od2')" id="od1">
+            <input class="otp-d" maxlength="1" oninput="moveFocus(this,'od3')" id="od2">
+            <input class="otp-d" maxlength="1" oninput="moveFocus(this,'od4')" id="od3">
+            <input class="otp-d" maxlength="1" oninput="moveFocus(this,'od5')" id="od4">
+            <input class="otp-d" maxlength="1" oninput="moveFocus(this,'od6')" id="od5">
+            <input class="otp-d" maxlength="1" id="od6">
+          </div>
+          <p style="font-size:12px;text-align:center;color:var(--ink-3);margin-bottom:18px">Intentos restantes: <strong>3</strong> · <a href="#" style="color:var(--accent-light)">Reenviar código</a></p>
+          <button class="btn btn-primary btn-full" onclick="switchScreen('pendiente')">Verificar código</button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="switchScreen('form')">← Volver</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA 3: Pendiente de proceso -->
+    <div class="screen" id="screen-pendiente">
+      <div class="card">
+        <div class="card-top"><span>⏳</span><h2>Solicitud Recibida</h2></div>
+        <div class="card-body">
+          <div style="text-align:center;padding:24px 0 16px">
+            <div style="font-size:48px;margin-bottom:14px">📋</div>
+            <h3 style="font-size:20px;font-weight:600;margin-bottom:8px;letter-spacing:-0.01em">Solicitud recibida</h3>
+            <p style="color:var(--ink-2);font-size:14px;max-width:360px;margin:0 auto 20px">El personal de su circunscripción procesará su solicitud. Una vez listo el certificado, recibirá un email con el link de pago.</p>
+            <div style="display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 24px;margin-bottom:16px">
+              <p style="font-size:10px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;margin-bottom:4px">NRO. DE TRÁMITE</p>
+              <p style="font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--accent)">RDAM-2025-004821</p>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <h4 style="font-size:12px;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)">Estado del proceso</h4>
+          <ul class="tl">
+            <li>
+              <div class="tl-action">Solicitud creada <span class="tl-time">14/02/2025 10:23</span></div>
+              <div class="tl-detail">Email validado · Circunscripción II (Rosario)</div>
+            </li>
+            <li>
+              <div class="tl-action" style="color:var(--amber)">Procesando <span class="tl-time">ahora</span></div>
+              <div class="tl-detail">En espera de generación del certificado por personal interno</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA 4: Pago -->
+    <div class="screen" id="screen-pagar">
+      <div class="card">
+        <div class="card-top"><span>💳</span><h2>Pago del Arancel de Emisión</h2></div>
+        <div class="card-body">
+          <div class="alert a-ok">✅ <span>Su certificado está listo. Debe abonar el arancel para acceder a la descarga.</span></div>
+          <div class="s-card" style="margin-bottom:18px">
+            <div class="s-head">📋 Detalle del pago</div>
+            <div class="s-body">
+              <div class="s-row"><span class="s-key">Concepto</span><span class="s-val">Emisión certificado RDAM</span></div>
+              <div class="s-row"><span class="s-key">DNI/CUIL consultado</span><span class="s-val">30123456</span></div>
+              <div class="s-row"><span class="s-key">Circunscripción</span><span class="s-val">II · Rosario</span></div>
+              <div class="s-row"><span class="s-key">Arancel</span><span class="s-val" style="font-size:16px;color:var(--accent)">$5.000,00</span></div>
+              <div class="s-row"><span class="s-key">Vencimiento</span><span class="s-val" style="color:var(--amber)">48 horas</span></div>
+            </div>
+          </div>
+          <div class="alert a-warn">⚠️ <span>El arancel se cobra por la <strong>emisión del certificado</strong>. No constituye pago de deuda alimentaria.</span></div>
+          <button class="btn btn-amber btn-full" style="margin-top:8px" onclick="switchScreen('descarga')">Pagar $5.000 con PlusPagos →</button>
+          <p style="text-align:center;font-size:12px;color:var(--ink-3);margin-top:8px">Redirige a la pasarela de pago segura PlusPagos</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA 5: Descarga -->
+    <div class="screen" id="screen-descarga">
+      <div class="card">
+        <div class="card-top"><span>✅</span><h2>Certificado Disponible</h2></div>
+        <div class="card-body">
+          <div class="alert a-ok">✅ <span>Pago procesado. Su certificado ha sido publicado y está listo para descargar.</span></div>
+          <div class="pdf-box">
+            <div style="font-size:40px;margin-bottom:10px">📄</div>
+            <h3 style="font-size:17px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em">Certificado RDAM Oficial</h3>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent-light)">N° RDAM-2025-SF-004821</p>
+            <p style="font-size:12px;color:var(--ink-3);margin-top:6px">Publicado el 14/02/2025 · Vigencia: 65 días</p>
+          </div>
+          <div class="divider"></div>
+          <div class="alert a-warn">⚠️ <span>El enlace de descarga tiene vigencia de <strong>65 días</strong>. Pasado ese plazo, el archivo será eliminado del servidor.</span></div>
+          <button class="btn btn-primary btn-full" onclick="showToast('✓ Certificado descargado')">⬇ Descargar Certificado</button>
+          <p style="text-align:center;font-size:12px;color:var(--ink-3);margin-top:8px">También enviado a su email · Vigente hasta 20/04/2025</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANTALLA: Mis Solicitudes -->
+    <div class="screen" id="screen-mis-solicitudes">
+      <div class="card">
+        <div class="card-top"><span>📂</span><h2>Mis Solicitudes</h2></div>
+        <div class="card-body">
+          <div class="alert a-info">🔑 <span>Accedió con token temporal. Este acceso expira en <strong>47h 12m</strong>.</span></div>
+          <div class="sol-item">
+            <div>
+              <div class="sol-id">RDAM-2025-004821</div>
+              <div class="sol-dni">DNI 30123456</div>
+              <div class="sol-meta">14/02/2025 · Circ. II Rosario · usuario@ejemplo.com</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              <span class="badge b-issued">Publicado</span>
+              <button class="btn btn-sm btn-primary" onclick="switchScreen('descarga')">Descargar</button>
+            </div>
+          </div>
+          <div class="sol-item">
+            <div>
+              <div class="sol-id">RDAM-2025-003974</div>
+              <div class="sol-dni">DNI 28765432</div>
+              <div class="sol-meta">01/02/2025 · Circ. I Santa Fe · otro@ejemplo.com</div>
+            </div>
+            <div><span class="badge b-pending">Pendiente</span></div>
+          </div>
+          <div class="sol-item">
+            <div>
+              <div class="sol-id">RDAM-2025-002150</div>
+              <div class="sol-dni">DNI 25341298</div>
+              <div class="sol-meta">10/01/2025 · Circ. V Rafaela · tercero@ejemplo.com</div>
+            </div>
+            <div><span class="badge b-rejected">Vencido</span></div>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-ghost btn-sm" onclick="switchScreen('form')">+ Nueva solicitud</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- fin col izq -->
+
+  <!-- Sidebar -->
+  <div>
+    <div class="s-card">
+      <div class="s-head">ℹ️ Información</div>
+      <div class="s-body">
+        <div class="s-row"><span class="s-key">Tipo</span><span class="s-val">Informativo</span></div>
+        <div class="s-row"><span class="s-key">Vigencia enlace</span><span class="s-val">65 días</span></div>
+        <div class="s-row"><span class="s-key">Arancel</span><span class="s-val">$5.000</span></div>
+        <div class="s-row"><span class="s-key">Código email</span><span class="s-val">15 min</span></div>
+      </div>
+    </div>
+    <div class="s-card">
+      <div class="s-head">⚠️ Aclaraciones legales</div>
+      <div class="s-body">
+        <p style="font-size:13px;color:var(--ink-2);line-height:1.65;margin-bottom:10px">El arancel se cobra por la <strong>emisión del certificado</strong>, no por la deuda. Personas que no figuren en el registro igualmente deben abonarlo.</p>
+        <p style="font-size:13px;color:var(--ink-2);line-height:1.65">Cualquier persona puede solicitar certificados de terceros. La responsabilidad del uso recae en el solicitante.</p>
+      </div>
+    </div>
+    <div class="s-card">
+      <div class="s-head">📞 Soporte</div>
+      <div class="s-body">
+        <div class="s-row"><span class="s-key">Web</span><span class="s-val" style="font-size:11px">rdam.santafe.gob.ar</span></div>
+        <div class="s-row"><span class="s-key">Email</span><span class="s-val" style="font-size:11px">soporte@rdam..</span></div>
+        <div class="s-row"><span class="s-key">Tel.</span><span class="s-val">0800-XXX-XXXX</span></div>
+        <div class="s-row"><span class="s-key">Horario</span><span class="s-val">L–V 8–20hs</span></div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--ink-4);text-align:center;line-height:1.6;padding-top:8px">Gobierno de la Provincia de Santa Fe<br>Poder Judicial — Registro RDAM</p>
+  </div>
+</div>
+
+<script>
+  function switchScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('screen-' + name);
+    if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+  }
+
+  function showPopup() { document.getElementById('popup').style.display = 'flex'; }
+  function closePopup() { document.getElementById('popup').style.display = 'none'; }
+  function confirmSend() { closePopup(); switchScreen('validar-email'); }
+
+  function moveFocus(el, nextId) {
+    if (el.value.length >= 1) {
+      const next = document.getElementById(nextId);
+      if (next) next.focus();
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

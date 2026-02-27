@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RDAM · Panel Interno</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f0f;
+    --ink-2: #3a3a3a;
+    --ink-3: #888;
+    --ink-4: #bbb;
+    --line: #e8e8e8;
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --accent: #1a3a6b;
+    --accent-l: #2555a0;
+    --amber: #b87a00;
+    --green: #156a40;
+    --red: #9b2525;
+    --sidebar-w: 220px;
+    --r: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 14px; }
+
+  /* ─── VISTA ─── */
+  .vista { display: none; }
+  .vista.active { display: block; }
+
+  /* ─── LOGIN ─── */
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--accent);
+    position: relative;
+  }
+  .login-wrap::after {
+    content: 'RDAM';
+    position: absolute; bottom: -30px; right: 20px;
+    font-size: 180px; font-weight: 600; letter-spacing: -0.04em;
+    color: rgba(255,255,255,0.04); pointer-events: none;
+    font-family: 'Sora', sans-serif;
+  }
+  .login-card {
+    background: var(--surface); border-radius: 12px;
+    padding: 40px 36px; width: 100%; max-width: 400px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.3);
+    position: relative; z-index: 1;
+  }
+  .login-brand { margin-bottom: 32px; }
+  .login-brand .dot { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .login-brand .dot span { font-size: 14px; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; }
+  .login-brand h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .login-brand p { font-size: 13px; color: var(--ink-3); }
+  .f-group { margin-bottom: 16px; }
+  .f-label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); font-family: 'JetBrains Mono', monospace; }
+  .f-input, .f-select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; font-family: 'Sora', sans-serif; font-size: 14px; color: var(--ink); background: var(--bg); outline: none; transition: border-color .15s, box-shadow .15s; appearance: none; }
+  .f-input:focus, .f-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,58,107,.08); background: var(--surface); }
+  .login-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); text-align: center; }
+
+  /* ─── ADMIN WRAP ─── */
+  .admin-wrap { display: flex; min-height: 100vh; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--ink); padding: 0;
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 50;
+  }
+  .sb-brand { padding: 20px 20px 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .sb-brand .dot { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  .sb-brand .dot span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.4); }
+  .sb-brand .name { font-size: 14px; font-weight: 600; color: #fff; }
+  .sb-brand .sub { font-size: 11px; color: rgba(255,255,255,.35); font-family: 'JetBrains Mono', monospace; }
+  .sb-section { padding: 14px 20px 4px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.25); font-family: 'JetBrains Mono', monospace; }
+  .sb-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 20px; cursor: pointer;
+    color: rgba(255,255,255,.5); font-size: 13px;
+    transition: all .15s; border-left: 2px solid transparent;
+  }
+  .sb-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.8); }
+  .sb-item.active { background: rgba(255,255,255,.08); color: #fff; border-left-color: rgba(255,255,255,.5); }
+  .sb-count { margin-left: auto; background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); border-radius: 10px; padding: 1px 7px; font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .sb-bottom { margin-top: auto; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.06); }
+  .sb-user { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.8); }
+  .u-name { font-size: 13px; font-weight: 500; color: #fff; }
+  .u-role { font-size: 11px; color: rgba(255,255,255,.35); }
+
+  /* ─── MAIN ─── */
+  .admin-main { flex: 1; margin-left: var(--sidebar-w); background: var(--bg); min-height: 100vh; }
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 0 28px; height: 54px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 40;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .content { padding: 24px 28px; }
+
+  /* ─── METRICS ─── */
+  .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
+  .m-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; }
+  .m-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+  .m-value { font-size: 32px; font-weight: 300; color: var(--ink); letter-spacing: -0.02em; }
+  .m-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+  /* ─── CARD ─── */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .card-top { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  .card-top h2 { font-size: 15px; font-weight: 600; }
+  .card-body { padding: 20px; }
+
+  /* ─── BTNS ─── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-l); }
+  .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--ink-3); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; padding: 10px; }
+
+  /* ─── BADGES ─── */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .b-pending { background: rgba(184,122,0,.1); color: var(--amber); }
+  .b-paid { background: rgba(26,58,107,.1); color: var(--accent-l); }
+  .b-issued { background: rgba(21,106,64,.1); color: var(--green); border: 1px solid rgba(21,106,64,.15); }
+  .b-expired { background: rgba(155,37,37,.1); color: var(--red); }
+
+  /* ─── ALERTS ─── */
+  .alert { padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.6; display: flex; gap: 8px; margin-bottom: 16px; border: 1px solid transparent; }
+  .a-info { background: rgba(26,58,107,.05); border-color: rgba(26,58,107,.1); color: var(--accent); }
+  .a-ok { background: rgba(21,106,64,.05); border-color: rgba(21,106,64,.12); color: var(--green); }
+
+  /* ─── TABLE ─── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl thead th { text-align: left; padding: 9px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid var(--line); background: var(--bg); }
+  .tbl tbody tr { border-bottom: 1px solid var(--line); transition: background .1s; cursor: pointer; }
+  .tbl tbody tr:hover { background: rgba(26,58,107,.02); }
+  .tbl td { padding: 11px 14px; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-l); }
+
+  /* ─── SEARCH/FILTER ─── */
+  .search-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .search-box { display: flex; align-items: center; gap: 8px; flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; }
+  .search-box input { border: none; outline: none; flex: 1; font-family: 'Sora', sans-serif; font-size: 13px; background: transparent; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); transition: all .15s; font-weight: 500; }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* ─── TIMELINE ─── */
+  .tl { list-style: none; padding-left: 18px; position: relative; }
+  .tl::before { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .tl li { position: relative; padding: 0 0 12px 12px; font-size: 13px; }
+  .tl li::before { content: ''; position: absolute; left: -5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-l); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent-l); }
+  .tl-action { font-weight: 600; }
+  .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  .tl-detail { color: var(--ink-2); margin-top: 1px; font-size: 12px; }
+
+  /* ─── MODAL ─── */
+  .modal-ov { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal-box { background: var(--surface); border-radius: 12px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); border: 1px solid var(--line); }
+  .modal-head { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .modal-head h3 { font-size: 16px; font-weight: 600; }
+  .modal-close { width: 28px; height: 28px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: var(--ink-2); transition: background .1s; }
+  .modal-close:hover { background: var(--line); }
+  .modal-body { padding: 20px 24px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .d-field { background: var(--bg); border-radius: 6px; padding: 10px 12px; }
+  .d-field .fl { font-size: 11px; color: var(--ink-3); margin-bottom: 2px; }
+  .d-field .fv { font-size: 13px; font-weight: 500; }
+  .sect-title { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; margin: 16px 0 10px; }
+  .upload-area { border: 1.5px dashed var(--line); border-radius: 8px; padding: 24px; text-align: center; background: var(--bg); cursor: pointer; transition: border-color .15s; }
+  .upload-area:hover { border-color: var(--accent); }
+  .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .i-key { color: var(--ink-2); }
+  .i-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; }
+
+  /* ─── PANEL ─── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ─── TOAST ─── */
+  .toast { position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+  .toast.show { display: flex; }
+  .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  .panel.active { animation: fadeUp .25s ease forwards; }
+
+  @media (max-width: 900px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .sidebar { display: none; }
+    .admin-main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── LOGIN ── -->
+<div class="vista active" id="vista-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="dot"><span>SF</span></div>
+        <h2>Panel Interno RDAM</h2>
+        <p>Acceso restringido · Provincia de Santa Fe</p>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Usuario institucional</label>
+        <input class="f-input" type="text" value="m.garcia@santafe.gob.ar">
+      </div>
+      <div class="f-group" style="margin-bottom:20px">
+        <label class="f-label">Contraseña</label>
+        <input class="f-input" type="password" value="••••••••">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">Iniciar sesión →</button>
+      <div class="login-footer">🔒 HTTPS/TLS 1.3 · JWT · Sesión 8 horas</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADMIN ── -->
+<div class="vista" id="vista-admin">
+  <div class="admin-wrap">
+
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="dot"><span></span><span></span><span></span></div>
+        <div class="name">RDAM Admin</div>
+        <div class="sub">Circ. II · Rosario</div>
+      </div>
+      <div class="sb-section">Principal</div>
+      <div class="sb-item active" onclick="switchPanel('dashboard',this)">📊 Dashboard</div>
+      <div class="sb-item" onclick="switchPanel('solicitudes',this)">
+        📋 Solicitudes <span class="sb-count">8</span>
+      </div>
+      <div class="sb-section" style="margin-top:8px">Gestión</div>
+      <div class="sb-item" onclick="switchPanel('usuarios',this)">👥 Usuarios</div>
+      <div class="sb-item" onclick="switchPanel('auditoria',this)">🔍 Auditoría</div>
+      <div class="sb-bottom">
+        <div class="sb-user">
+          <div class="avatar">MG</div>
+          <div style="flex:1">
+            <div class="u-name">García, Marcos</div>
+            <div class="u-role">Operador</div>
+          </div>
+          <span style="color:rgba(255,255,255,.3);cursor:pointer;font-size:16px" onclick="logout()" title="Salir">⏏</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- DASHBOARD -->
+      <div id="panel-dashboard" class="panel active">
+        <div class="topbar">
+          <h1>Dashboard</h1>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--ink-3);font-family:'JetBrains Mono',monospace">14/02/2025</span>
+            <button class="btn btn-ghost btn-sm" onclick="showToast('✓ Datos actualizados')">↻ Actualizar</button>
+          </div>
+        </div>
+        <div class="content">
+          <div class="metrics">
+            <div class="m-card">
+              <div class="m-label">Total solicitudes</div>
+              <div class="m-value">247</div>
+              <div class="m-sub">+18 esta semana</div>
+            </div>
+            <div class="m-card">
+              <div class="m-label">Pendientes de certificado</div>
+              <div class="m-value">8</div>
+              <div class="m-sub">Tiempo promedio: 4.2h</div>
+            </div>
+            <div class="m-card">
+              <div class="m-label">Publicados (mes)</div>
+              <div class="m-value">89</div>
+              <div class="m-sub">↑ 12% vs mes anterior</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div class="card">
+              <div class="card-top"><span>⚡</span><h2>Acciones rápidas</h2></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-primary" onclick="switchPanel('solicitudes',document.querySelectorAll('.sb-item')[1])">
+                  📋 Ver solicitudes pendientes (8)
+                </button>
+                <button class="btn btn-ghost" onclick="showToast('Reporte generado')">📊 Generar reporte mensual</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-top"><span>📊</span><h2>Resumen del día</h2></div>
+              <div class="card-body">
+                <div class="info-row"><span class="i-key">Nuevas solicitudes</span><span class="i-val" style="color:var(--accent)">5</span></div>
+                <div class="info-row"><span class="i-key">Pagos recibidos</span><span class="i-val" style="color:var(--green)">3</span></div>
+                <div class="info-row"><span class="i-key">Certificados publicados</span><span class="i-val" style="color:var(--green)">3</span></div>
+                <div class="info-row"><span class="i-key">🟢 PlusPagos</span><span class="i-val" style="color:var(--green)">Operativa</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-top"><span>🕐</span><h2>Últimas actividades</h2></div>
+            <div class="card-body">
+              <ul class="tl">
+                <li>
+                  <div class="tl-action">Certificado publicado <span class="tl-time">10:47</span></div>
+                  <div class="tl-detail">RDAM-2025-004821 · DNI 30123456 · García, Marcos</div>
+                </li>
+                <li>
+                  <div class="tl-action">Pago recibido (webhook) <span class="tl-time">10:44</span></div>
+                  <div class="tl-detail">RDAM-2025-004821 · $5.000,00 · PlusPagos TXN-89234</div>
+                </li>
+                <li>
+                  <div class="tl-action">Nueva solicitud recibida <span class="tl-time">09:20</span></div>
+                  <div class="tl-detail">RDAM-2025-004819 · DNI 29887766 · Circ. II Rosario</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOLICITUDES -->
+      <div id="panel-solicitudes" class="panel">
+        <div class="topbar">
+          <h1>Solicitudes</h1>
+          <button class="btn btn-ghost btn-sm" onclick="showToast('Exportando CSV...')">⬇ CSV</button>
+        </div>
+        <div class="content">
+          <div class="search-row">
+            <div class="search-box">
+              <span style="color:var(--ink-3)">🔍</span>
+              <input type="text" placeholder="Buscar por DNI, email, ID de solicitud...">
+            </div>
+            <select class="f-select" style="width:220px">
+              <option value="">Todas las circunscripciones</option>
+              <option value="1">Circ. I · Santa Fe</option>
+              <option value="2" selected>Circ. II · Rosario</option>
+              <option value="3">Circ. III · Venado Tuerto</option>
+              <option value="4">Circ. IV · Reconquista</option>
+              <option value="5">Circ. V · Rafaela</option>
+            </select>
+          </div>
+          <div class="chips">
+            <div class="chip active" onclick="filterChip(this)">Todas (247)</div>
+            <div class="chip" onclick="filterChip(this)">Pendiente pago (8)</div>
+            <div class="chip" onclick="filterChip(this)">Pagado (5)</div>
+            <div class="chip" onclick="filterChip(this)">Publicado (89)</div>
+            <div class="chip" onclick="filterChip(this)">Vencido (14)</div>
+          </div>
+          <div class="card">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>ID Solicitud</th>
+                  <th>DNI / CUIL</th>
+                  <th>Email</th>
+                  <th>Circunscripción</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr onclick="openModal('pagado')">
+                  <td class="mono">RDAM-2025-004822</td>
+                  <td><strong>31445566</strong></td>
+                  <td>j.perez@ejemplo.com</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span class="badge b-paid">Pagado</span></td>
+                  <td class="mono" style="font-size:11px">14/02 11:02</td>
+                  <td><button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openModal('pagado')">Cargar cert.</button></td>
+                </tr>
+                <tr>
+                  <td class="mono">RDAM-2025-004821</td>
+                  <td><strong>30123456</strong></td>
+                  <td>usuario@ejemplo.com</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span class="badge b-issued">Publicado</span></td>
+                  <td class="mono" style="font-size:11px">14/02 10:47</td>
+                  <td><button class="btn btn-sm btn-ghost" onclick="showToast('Abriendo certificado')">Ver cert.</button></td>
+                </tr>
+                <tr onclick="openModal('pagado')">
+                  <td class="mono">RDAM-2025-004820</td>
+                  <td><strong>22113344</strong></td>
+                  <td>c.gomez@ejemplo.com</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span class="badge b-paid">Pagado</span></td>
+                  <td class="mono" style="font-size:11px">14/02 10:31</td>
+                  <td><button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openModal('pagado')">Cargar cert.</button></td>
+                </tr>
+                <tr>
+                  <td class="mono">RDAM-2025-004819</td>
+                  <td><strong>29887766</strong></td>
+                  <td>m.lopez@ejemplo.com</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span class="badge b-pending">Pendiente pago</span></td>
+                  <td class="mono" style="font-size:11px">14/02 09:20</td>
+                  <td><span style="font-size:12px;color:var(--ink-3)">Esperando pago</span></td>
+                </tr>
+                <tr>
+                  <td class="mono">RDAM-2025-004815</td>
+                  <td><strong>27654321</strong></td>
+                  <td>a.torres@ejemplo.com</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span class="badge b-expired">Vencido</span></td>
+                  <td class="mono" style="font-size:11px">05/02 09:55</td>
+                  <td><span style="font-size:12px;color:var(--ink-3)">—</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div id="panel-usuarios" class="panel">
+        <div class="topbar">
+          <h1>Usuarios Internos</h1>
+          <button class="btn btn-sm btn-primary" onclick="showToast('Formulario de nuevo usuario')">+ Nuevo usuario</button>
+        </div>
+        <div class="content">
+          <div class="card">
+            <table class="tbl">
+              <thead>
+                <tr><th>Nombre</th><th>Email</th><th>Circunscripción</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>García, Marcos</strong> <span style="font-size:10px;color:var(--accent-l);font-family:'JetBrains Mono',monospace">(tú)</span></td>
+                  <td class="mono" style="font-size:11px">m.garcia@santafe.gob.ar</td>
+                  <td style="font-size:12px">II · Rosario</td>
+                  <td><span style="font-size:11px;background:rgba(26,58,107,.08);color:var(--accent-l);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace">Operador</span></td>
+                  <td><span class="badge b-issued">Activo</span></td>
+                  <td class="mono" style="font-size:11px">hoy 10:23</td>
+                  <td><button class="btn btn-sm btn-ghost" onclick="showToast('Editando usuario')">Editar</button></td>
+                </tr>
+                <tr>
+                  <td><strong>López, Ana</strong></td>
+                  <td class="mono" style="font-size:11px">a.lopez@santafe.gob.ar</td>
+                  <td style="font-size:12px">I · Santa Fe</td>
+                  <td><span style="font-size:11px;background:rgba(26,58,107,.08);color:var(--accent-l);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace">Operador</span></td>
+                  <td><span class="badge b-issued">Activo</span></td>
+                  <td class="mono" style="font-size:11px">hoy 09:45</td>
+                  <td><button class="btn btn-sm btn-ghost" onclick="showToast('Editando usuario')">Editar</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Rodríguez, Carlos</strong></td>
+                  <td class="mono" style="font-size:11px">c.rodriguez@santafe.gob.ar</td>
+                  <td style="font-size:12px">Todas</td>
+                  <td><span style="font-size:11px;background:rgba(184,122,0,.1);color:var(--amber);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace">Admin</span></td>
+                  <td><span class="badge b-issued">Activo</span></td>
+                  <td class="mono" style="font-size:11px">ayer 16:10</td>
+                  <td><button class="btn btn-sm btn-ghost" onclick="showToast('Editando usuario')">Editar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDITORÍA -->
+      <div id="panel-auditoria" class="panel">
+        <div class="topbar">
+          <h1>Auditoría</h1>
+          <button class="btn btn-sm btn-ghost" onclick="showToast('Exportando logs...')">⬇ Exportar</button>
+        </div>
+        <div class="content">
+          <div class="card">
+            <div class="card-top"><span>📜</span><h2>Registro de operaciones</h2></div>
+            <div class="card-body">
+              <ul class="tl">
+                <li>
+                  <div class="tl-action">CERTIFICADO_PUBLICADO <span class="tl-time">14/02/2025 10:47:23</span></div>
+                  <div class="tl-detail">Solicitud RDAM-2025-004821 · Usuario: m.garcia · IP: 10.0.1.45</div>
+                </li>
+                <li>
+                  <div class="tl-action">WEBHOOK_PAGO_OK <span class="tl-time">14/02/2025 10:44:11</span></div>
+                  <div class="tl-detail">PlusPagos TXN-89234 · $5.000,00 · HMAC verificado ✓</div>
+                </li>
+                <li>
+                  <div class="tl-action">CERTIFICADO_CARGADO <span class="tl-time">14/02/2025 10:31:05</span></div>
+                  <div class="tl-detail">RDAM-2025-004820 · Usuario: a.lopez · Circ. I Santa Fe</div>
+                </li>
+                <li>
+                  <div class="tl-action">LOGIN_EXITOSO <span class="tl-time">14/02/2025 10:23:10</span></div>
+                  <div class="tl-detail">Usuario: m.garcia · IP: 10.0.1.45 · JWT emitido</div>
+                </li>
+                <li>
+                  <div class="tl-action">SOLICITUD_VENCIDA <span class="tl-time">14/02/2025 09:55:33</span></div>
+                  <div class="tl-detail">RDAM-2025-004815 · Plazo de pago expirado</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── MODAL ── -->
+<div class="modal-ov" id="modal" style="display:none" onclick="closeModalOuter(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Solicitud RDAM-2025-004822</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="sect-title">Información de la solicitud</div>
+      <div class="g2">
+        <div class="d-field"><div class="fl">ID Solicitud</div><div class="fv" style="font-family:'JetBrains Mono',monospace;font-size:12px">RDAM-2025-004822</div></div>
+        <div class="d-field"><div class="fl">Estado actual</div><div class="fv"><span class="badge b-paid">Pagado</span></div></div>
+        <div class="d-field"><div class="fl">DNI / CUIL consultado</div><div class="fv">31445566</div></div>
+        <div class="d-field"><div class="fl">Email solicitante</div><div class="fv" style="font-size:12px">j.perez@ejemplo.com</div></div>
+        <div class="d-field"><div class="fl">Circunscripción</div><div class="fv">II · Rosario</div></div>
+        <div class="d-field"><div class="fl">Fecha de pago confirmado</div><div class="fv" style="font-family:'JetBrains Mono',monospace;font-size:12px">14/02/2025 11:02</div></div>
+      </div>
+      <div class="sect-title">Cargar certificado</div>
+      <div class="alert a-info">ℹ️ <span>El pago fue confirmado. Genere el certificado en el sistema judicial externo y súbalo aquí para notificar al ciudadano.</span></div>
+      <div class="upload-area" onclick="showToast('Seleccionando archivo...')">
+        <div style="font-size:28px;margin-bottom:8px">📄</div>
+        <p style="font-size:13px;font-weight:600;margin-bottom:4px">Haga clic para seleccionar el archivo</p>
+        <p style="font-size:12px;color:var(--ink-3)">PDF · Máximo 10 MB</p>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeModal();showToast('✓ Certificado publicado · Ciudadano notificado por email')">⬆ Publicar certificado</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function doLogin() {
+    document.getElementById('vista-login').classList.remove('active');
+    document.getElementById('vista-admin').classList.add('active');
+    showToast('✓ Bienvenido, García Marcos');
+  }
+  function logout() {
+    document.getElementById('vista-admin').classList.remove('active');
+    document.getElementById('vista-login').classList.add('active');
+    showToast('Sesión cerrada');
+  }
+  function switchPanel(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+    const p = document.getElementById('panel-' + name);
+    if (p) p.classList.add('active');
+    if (el) el.classList.add('active');
+  }
+  function filterChip(el) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function openModal() { document.getElementById('modal').style.display = 'flex'; }
+  function closeModal() { document.getElementById('modal').style.display = 'none'; }
+  function closeModalOuter(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
