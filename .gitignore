@@ -1,0 +1,43 @@
+# =========================
+# SECRETOS — nunca al repo
+# =========================
+.env
+.env.local
+.env.*.local
+*.jks
+*.p12
+*.pem
+*.key
+
+# =========================
+# COMPILACIÓN MAVEN
+# =========================
+target/
+*.jar
+*.war
+*.class
+
+# =========================
+# IDEs
+# =========================
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+
+# =========================
+# SISTEMA OPERATIVO
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# LOGS
+# =========================
+*.log
+logs/

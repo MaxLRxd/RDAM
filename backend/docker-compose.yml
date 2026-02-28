@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+
+  # ============================================
+  # BASE DE DATOS — MySQL 8
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: rdam-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rdam_db
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Healthcheck: Spring Boot esperará hasta que MySQL
+    # esté listo para aceptar conexiones antes de arrancar.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # REDIS — Tokens efímeros
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: rdam-redis
+    ports:
+      - "6379:6379"
+    # Sin contraseña en desarrollo local.
+    # En producción agregar: --requirepass ${REDIS_PASSWORD}
+    command: redis-server
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # MINIO — Almacenamiento de certificados PDF
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: rdam-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Consola web → http://localhost:9001
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # MAILHOG — Servidor SMTP falso para desarrollo
+  # Captura todos los emails y los muestra en una UI web.
+  # Ver emails enviados en: http://localhost:8025
+  # ============================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: rdam-mailhog
+    ports:
+      - "1025:1025"   # Puerto SMTP (Spring Mail apunta acá)
+      - "8025:8025"   # UI web para ver los emails
+    networks:
+      - rdam-network
+
+  # ============================================
+  # PLUSPAGOS MOCK — Simulador de pasarela de pagos
+  # Los archivos server.js y crypto.js que subiste.
+  # ============================================
+  pluspagos-mock:
+    image: node:18-alpine
+    container_name: rdam-pluspagos-mock
+    working_dir: /app
+    # Copia los archivos del mock desde tu máquina al contenedor.
+    # Ajustá la ruta si tus archivos están en otro lugar.
+    volumes:
+      - ./pluspagos-mock:/app
+    command: sh -c "npm install && node server.js"
+    ports:
+      - "3000:3000"
+    networks:
+      - rdam-network
+
+# ============================================
+# VOLÚMENES — Persisten los datos entre reinicios
+# ============================================
+volumes:
+  mysql_data:
+  minio_data:
+
+# ============================================
+# RED — Todos los servicios se ven entre sí
+# por nombre de contenedor (ej: "rdam-mysql")
+# ============================================
+networks:
+  rdam-network:
+    driver: bridge
