@@ -55,7 +55,7 @@ INSERT IGNORE INTO usuario_interno
 VALUES
     (
         'admin@rdam.santafe.gob.ar',
-        '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+        '$2a$12$VSIaYnbpohM0wvIkpXmsSuIvctaWOjhFhP9aXHrNagCy0EZJLRGYm',
         'ADMIN',
         NULL,
         TRUE
