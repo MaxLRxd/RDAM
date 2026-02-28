@@ -12,7 +12,7 @@ CREATE TABLE solicitud (
 
     -- FK hacia la tabla maestra. Determina qué operador
     -- puede trabajar con esta solicitud.
-    id_circunscripcion  TINYINT         NOT NULL,
+    id_circunscripcion  INT         NOT NULL,
 
     -- Código OTP de 6 dígitos. Se limpia tras validación exitosa.
     codigo_validacion   VARCHAR(6)      NULL,

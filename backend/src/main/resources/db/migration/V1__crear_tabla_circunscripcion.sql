@@ -5,7 +5,7 @@
 -- =============================================================
 
 CREATE TABLE circunscripcion (
-    id_circunscripcion  TINYINT         NOT NULL,
+    id_circunscripcion INT NOT NULL AUTO_INCREMENT,
     nombre              VARCHAR(50)     NOT NULL,
     sede                VARCHAR(100)    NOT NULL,
 

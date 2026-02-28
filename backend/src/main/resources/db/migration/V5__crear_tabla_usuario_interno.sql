@@ -17,7 +17,7 @@ CREATE TABLE usuario_interno (
 
     -- NULL para ADMIN (acceso total).
     -- NOT NULL para OPERADOR (solo ve su circunscripción).
-    id_circunscripcion  TINYINT     NULL,
+    id_circunscripcion  INT     NULL,
 
     activo              BOOLEAN     NOT NULL DEFAULT TRUE,
     fecha_creacion      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,

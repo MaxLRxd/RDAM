@@ -3,6 +3,7 @@ import com.rdam.backend.domain.dto.CrearSolicitudRequest;
 import com.rdam.backend.domain.dto.CrearSolicitudResponse;
 import com.rdam.backend.domain.dto.SolicitudEstadoResponse;
 import com.rdam.backend.domain.dto.ValidarOtpResponse;
+import com.rdam.backend.exception.CircunscripcionMismatchException;
 import com.rdam.backend.exception.EstadoInvalidoException;
 import com.rdam.backend.exception.SolicitudNotFoundException;
 import com.rdam.backend.exception.TokenInvalidoException;
@@ -65,12 +66,12 @@ public class SolicitudService {
     private final PagoService                    pagoService;
     private final CertificadoService             certificadoService;
 
-    @Value("${rdam.backend.negocio.monto-arancel}")
+    @Value("${rdam.negocio.monto-arancel}")
     private BigDecimal montoArancel;
 
-    @Value("${rdam.backend.negocio.validez-certificado-dias}")
+    @Value("${rdam.negocio.validez-certificado-dias}")
     private int validezCertificadoDias;
-
+    
     @Value("${server.base-url:http://localhost:8080}")
     private String baseUrl;
 
