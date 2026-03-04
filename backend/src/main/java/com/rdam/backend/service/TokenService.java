@@ -154,12 +154,9 @@ public class TokenService {
             nroTramite,
             TTL_TOKEN_CIUDADANO
         );
-        
-            // TEMPORAL — debug
-        String verificacion = redisTemplate.opsForValue()
-                                        .get(PREFIJO_TOKEN_CIUDADANO + token);
-        log.debug("Token ciudadano guardado. token={} nroTramite={} verificacion={}",
-                token, nroTramite, verificacion);
+
+        log.debug("Token ciudadano guardado. token={} nroTramite={}",
+                token, nroTramite);
         return token;
     }
 

@@ -1,6 +1,7 @@
 package com.rdam.backend.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -31,6 +32,7 @@ import java.time.Instant;
  * los @RestController del proyecto.
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -138,7 +140,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         // El stacktrace real va al log del servidor, nunca al cliente
-        ex.printStackTrace();
+        log.error("Excepción no contemplada en {}:", request.getRequestURI(), ex);
 
         return buildProblem(HttpStatus.INTERNAL_SERVER_ERROR,
                            "Error interno",

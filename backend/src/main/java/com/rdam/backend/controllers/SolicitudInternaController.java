@@ -5,6 +5,7 @@ import com.rdam.backend.domain.entity.UsuarioInterno;
 import com.rdam.backend.enums.EstadoSolicitud;
 import com.rdam.backend.service.SolicitudService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -37,6 +38,9 @@ import java.util.Map;
 public class SolicitudInternaController {
 
     private final SolicitudService solicitudService;
+
+    @Value("${rdam.negocio.validez-certificado-dias}")
+    private int validezCertificadoDias;
 
     /**
      * Lista solicitudes con paginación y filtros opcionales.
@@ -97,7 +101,7 @@ public class SolicitudInternaController {
         return ResponseEntity.ok(Map.of(
             "tokenDescarga",  tokenDescarga,
             "urlDescarga",    "/api/v1/certificados/" + tokenDescarga,
-            "vigenciaDias",   65
+            "vigenciaDias",   validezCertificadoDias
         ));
     }
 
@@ -119,7 +123,7 @@ public class SolicitudInternaController {
 
         return ResponseEntity.ok(Map.of(
             "nuevoTokenDescarga", nuevoToken,
-            "vigenciaDias",       65
+            "vigenciaDias",       validezCertificadoDias
         ));
     }
 }

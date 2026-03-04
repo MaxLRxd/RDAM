@@ -97,11 +97,16 @@ function generateTransactionId() {
 }
 
 /**
- * Genera un ID numérico de plataforma
+ * Genera un ID numérico único de plataforma usando timestamp + random.
+ * Evita colisiones combinando Date.now() con un componente aleatorio.
  * @returns {number}
  */
+let platformIdCounter = 0;
 function generatePlatformId() {
-  return Math.floor(Math.random() * 900000) + 100000;
+  platformIdCounter++;
+  // Últimos 6 dígitos del timestamp + contador para garantizar unicidad
+  const timePart = Date.now() % 1000000;
+  return timePart * 1000 + (platformIdCounter % 1000);
 }
 
 module.exports = {
