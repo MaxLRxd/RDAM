@@ -2,18 +2,14 @@ package com.rdam.backend.controllers;
 import com.rdam.backend.domain.dto.WebhookPlusPagosRequest;
 import com.rdam.backend.service.PagoService;
 import com.rdam.backend.service.SolicitudService;
-
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.ContentCachingRequestWrapper;
-
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-
 /**
  * Recibe notificaciones asíncronas de PlusPagos.
  *
@@ -54,23 +50,23 @@ public class WebhookController {
             @RequestHeader(value = "X-PlusPagos-Signature",
                         required = false) String firma,
             @RequestBody WebhookPlusPagosRequest payload,
-            HttpServletRequest httpRequest) throws IOException {
+            HttpServletRequest httpRequest) {
 
-        // Leer el body cacheado por CacheRequestBodyFilter.
-        // Jackson ya consumió el InputStream para @RequestBody,
-        // así que usamos getContentAsByteArray() del wrapper
-        // que preservó una copia del body original.
-        ContentCachingRequestWrapper cachedRequest =
+        // ContentCachingRequestWrapper guarda el body después de que
+        // Jackson lo leyó para deserializar el @RequestBody.
+        // Lo obtenemos con getContentAsByteArray(), no con getInputStream().
+        ContentCachingRequestWrapper wrapper =
             (ContentCachingRequestWrapper) httpRequest;
+
         String rawBody = new String(
-            cachedRequest.getContentAsByteArray(),
+            wrapper.getContentAsByteArray(),
             StandardCharsets.UTF_8
         );
 
-        //if (!pagoService.validarFirmaHmac(rawBody, firma)) {
-        //    log.warn("Webhook rechazado: firma HMAC inválida.");
-        //    return ResponseEntity.status(401).build();
-        //}
+        if (!pagoService.validarFirmaHmac(rawBody, firma)) {
+            log.warn("Webhook rechazado: firma HMAC inválida.");
+            return ResponseEntity.status(401).build();
+        }
 
         int codigoEstado = Integer.parseInt(payload.getEstadoId());
         BigDecimal monto = new BigDecimal(payload.getMonto());
