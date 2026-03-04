@@ -48,8 +48,7 @@ public class SolicitudStateMachine {
         };
 
         if (!esValida) {
-            //CAMBIAR A EstadoInvalidoException de "exception" package
-            throw new RuntimeException(
+            throw new EstadoInvalidoException(
                 "Transición no permitida: " + actual + " → " + destino
             );
         }
