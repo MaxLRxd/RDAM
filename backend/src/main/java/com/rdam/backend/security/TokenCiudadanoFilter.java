@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -29,8 +31,8 @@ import java.util.List;
  *   3. Si existe, extrae el nroTramite del valor almacenado
  *   4. Setea una autenticación con rol ROLE_CIUDADANO
  *
- * Este filtro corre DESPUÉS de JwtFilter. Si JwtFilter ya
- * seteó una autenticación, este filtro no hace nada.
+ * Este filtro corre ANTES de JwtFilter (ver SecurityConfig).
+ * Si otro filtro ya seteó una autenticación, este filtro no hace nada.
  *
  * Convención de clave Redis:
  *   KEY:   "ciudadano:token:{tokenAcceso}"
@@ -39,6 +41,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TokenCiudadanoFilter extends OncePerRequestFilter {
 
     private final StringRedisTemplate redisTemplate;
@@ -53,6 +56,8 @@ public class TokenCiudadanoFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        log.debug("TokenCiudadanoFilter — Authorization header: {}",
+              request.getHeader("Authorization"));
         // Si JwtFilter ya autenticó al usuario (usuario interno),
         // este filtro no interviene.
         if (SecurityContextHolder.getContext()

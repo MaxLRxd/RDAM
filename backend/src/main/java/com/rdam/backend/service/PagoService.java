@@ -131,7 +131,9 @@ public class PagoService {
      */
     public ResultadoPago interpretarCodigoEstado(int codigoEstado) {
         return switch (codigoEstado) {
-            case 0 -> ResultadoPago.APROBADO;
+            // 0 = APROBADA (spec original PlusPagos)
+            // 3 = REALIZADA (código usado por el mock PlusPagos-Simple)
+            case 0, 3 -> ResultadoPago.APROBADO;
             case 4, 7, 8, 9, 11 -> ResultadoPago.RECHAZADO;
             default -> {
                 log.warn("Código de estado PlusPagos desconocido: {}",

@@ -2,6 +2,8 @@ package com.rdam.backend.service;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TokenService {
 
     private final StringRedisTemplate redisTemplate;
@@ -151,7 +154,12 @@ public class TokenService {
             nroTramite,
             TTL_TOKEN_CIUDADANO
         );
-
+        
+            // TEMPORAL — debug
+        String verificacion = redisTemplate.opsForValue()
+                                        .get(PREFIJO_TOKEN_CIUDADANO + token);
+        log.debug("Token ciudadano guardado. token={} nroTramite={} verificacion={}",
+                token, nroTramite, verificacion);
         return token;
     }
 

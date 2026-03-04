@@ -251,11 +251,20 @@ public class SolicitudService {
             .multiply(BigDecimal.valueOf(100))
             .longValue();
 
-        return pagoService.crearOrdenPago(
+        PagoService.ResultadoOrdenPago resultado = pagoService.crearOrdenPago(
             idSolicitud,
             solicitud.getNroTramite(),
             montoCentavos
         );
+
+        // Persistir el idOrdenPago en la solicitud para que el webhook
+        // pueda encontrarla después con findByIdOrdenPago().
+        // Sin esto, el webhook no tiene forma de vincular el pago
+        // con la solicitud correspondiente.
+        solicitud.setIdOrdenPago(resultado.idOrdenPago());
+        solicitudRepository.save(solicitud);
+
+        return resultado;
     }
 
     // =========================================================

@@ -45,10 +45,18 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        // Si TokenCiudadanoFilter (u otro filtro) ya autenticó al usuario,
+        // no procesamos el token como JWT. Esto evita que el catch de
+        // TokenInvalidoException haga clearContext() y borre una
+        // autenticación válida de ciudadano.
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = extraerToken(request);
 
         // Si no hay token JWT en el header, pasamos al siguiente filtro.
-        // TokenCiudadanoFilter se encargará si corresponde.
         if (token == null) {
             filterChain.doFilter(request, response);
             return;

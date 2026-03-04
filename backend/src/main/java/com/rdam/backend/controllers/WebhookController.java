@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -55,9 +56,14 @@ public class WebhookController {
             @RequestBody WebhookPlusPagosRequest payload,
             HttpServletRequest httpRequest) throws IOException {
 
-        // Leer el body como String para validar la firma
+        // Leer el body cacheado por CacheRequestBodyFilter.
+        // Jackson ya consumió el InputStream para @RequestBody,
+        // así que usamos getContentAsByteArray() del wrapper
+        // que preservó una copia del body original.
+        ContentCachingRequestWrapper cachedRequest =
+            (ContentCachingRequestWrapper) httpRequest;
         String rawBody = new String(
-            httpRequest.getInputStream().readAllBytes(),
+            cachedRequest.getContentAsByteArray(),
             StandardCharsets.UTF_8
         );
 
