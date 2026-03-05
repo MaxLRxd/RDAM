@@ -365,6 +365,91 @@ public class SolicitudService {
         }
     }
 
+    /**
+     * Procesa el resultado de un pago recibido por callback directo de PlusPagos.
+     *
+     * A diferencia del webhook global (que busca por idOrdenPago),
+     * el callback busca la solicitud por nroTramite (comercioId),
+     * que es el identificador enviado al mock en el formulario de pago.
+     *
+     * Idempotencia: si la solicitud ya no está en PENDIENTE,
+     * el callback se ignora silenciosamente.
+     *
+     * @param nroTramite   Número de trámite (viene como "comercioId" en el callback).
+     * @param codigoEstado Código de resultado (0=aprobado, 4=rechazado).
+     * @param monto        Monto confirmado por PlusPagos.
+     */
+    @Transactional
+    public void procesarCallbackPago(String nroTramite,
+                                    int codigoEstado,
+                                    BigDecimal monto) {
+
+        Solicitud solicitud = solicitudRepository
+            .findByNroTramite(nroTramite)
+            .orElseThrow(() -> new SolicitudNotFoundException(
+                "nroTramite=" + nroTramite
+            ));
+
+        // Idempotencia: si ya fue procesado, ignorar silenciosamente
+        if (solicitud.getEstado() != EstadoSolicitud.PENDIENTE) {
+            log.warn("Callback duplicado ignorado. nroTramite={} estadoActual={}",
+                    nroTramite, solicitud.getEstado());
+            return;
+        }
+
+        PagoService.ResultadoPago resultado =
+            pagoService.interpretarCodigoEstado(codigoEstado);
+
+        if (resultado == PagoService.ResultadoPago.APROBADO) {
+            stateMachine.validarTransicion(
+                solicitud.getEstado(), EstadoSolicitud.PAGADO
+            );
+
+            solicitud.setEstado(EstadoSolicitud.PAGADO);
+            solicitud.setMontoArancel(monto);
+            solicitud.setSolFecPago(LocalDateTime.now());
+            solicitudRepository.save(solicitud);
+
+            registrarHistorial(
+                solicitud,
+                EstadoSolicitud.PENDIENTE,
+                EstadoSolicitud.PAGADO,
+                null
+            );
+
+            emailService.notificarPagoConfirmado(
+                solicitud.getEmail(),
+                solicitud.getNroTramite()
+            );
+
+            log.info("Callback aprobado procesado. nroTramite={} monto={}",
+                    nroTramite, monto);
+
+        } else {
+            stateMachine.validarTransicion(
+                solicitud.getEstado(), EstadoSolicitud.VENCIDO
+            );
+
+            solicitud.setEstado(EstadoSolicitud.VENCIDO);
+            solicitudRepository.save(solicitud);
+
+            registrarHistorial(
+                solicitud,
+                EstadoSolicitud.PENDIENTE,
+                EstadoSolicitud.VENCIDO,
+                null
+            );
+
+            emailService.notificarSolicitudVencida(
+                solicitud.getEmail(),
+                solicitud.getNroTramite()
+            );
+
+            log.info("Callback rechazado procesado. nroTramite={} codigo={}",
+                    nroTramite, codigoEstado);
+        }
+    }
+
     // =========================================================
     // PANEL INTERNO — OPERADOR / ADMIN
     // =========================================================

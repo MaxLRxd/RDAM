@@ -82,8 +82,11 @@ public class SecurityConfig {
                 ).hasRole("CIUDADANO")
 
                 // ENDPOINTS WEBHOOK — validación HMAC en el servicio
+                // FIX: se agregó /webhooks/pluspagos/callback que estaba
+                // ausente y causaba un 403 al recibir callbacks de pago.
                 .requestMatchers(HttpMethod.POST,
-                    "/webhooks/pluspagos"
+                    "/webhooks/pluspagos",
+                    "/webhooks/pluspagos/callback"
                 ).permitAll()
 
                 // ENDPOINTS PANEL INTERNO — requieren JWT

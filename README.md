@@ -5,6 +5,10 @@
 > **Cambios respecto a v1.1:** Incorporación de circunscripciones judiciales como eje organizativo del sistema. Eliminación del flujo de aprobación/rechazo manual por parte del operador. Simplificación del ciclo de vida de solicitudes. Popup de confirmación de arancel en el portal ciudadano.
 
 ---
+## Scripts para levantar proyecto
+> **Spring boot** $env:SERVER_BASE_URL="http://host.docker.internal:8080"; .\mvnw.cmd spring-boot:run
+> **Docker** docker compose up -d
+
 
 ## Contenido
 

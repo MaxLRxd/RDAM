@@ -1,5 +1,6 @@
 package com.rdam.backend.service;
 
+import com.rdam.backend.config.PlusPagosCrypto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,18 +12,24 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Gestiona la integración con la pasarela de pagos PlusPagos.
  *
  * Responsabilidades:
- *   - Generar órdenes de pago (real o simulada)
+ *   - Generar órdenes de pago con campos AES-256-CBC encriptados
  *   - Validar la firma HMAC-SHA256 del webhook entrante
  *   - Mapear códigos de estado PlusPagos a estados del sistema
  *
- * El modo de operación se controla con la variable PAYMENT_MODE.
- * En modo 'sim' no se realizan llamadas HTTP externas.
+ * El modo de operación se controla con PAYMENT_MODE:
+ *   - 'sim': apunta al mock local en Docker (localhost:3000)
+ *   - 'real': apuntaría a PlusPagos producción (no implementado)
+ *
+ * En ambos modos, el flujo de encriptación y el form POST son reales.
+ * La diferencia es solo la URL destino.
  */
 @Service
 @Slf4j
@@ -37,8 +44,14 @@ public class PagoService {
     @Value("${rdam.payment.merchant-guid}")
     private String merchantGuid;
 
+    @Value("${rdam.payment.secret-key}")
+    private String secretKey;
+
     @Value("${rdam.payment.api-url}")
     private String apiUrl;
+
+    @Value("${server.base-url:http://localhost:8080}")
+    private String serverBaseUrl;
 
     // Algoritmo HMAC usado por PlusPagos
     private static final String HMAC_ALGORITMO = "HmacSHA256";
@@ -46,45 +59,49 @@ public class PagoService {
     /**
      * Genera una orden de pago para una solicitud.
      *
-     * En modo simulación devuelve datos mock.
-     * En modo real generaría la orden firmada en PlusPagos.
+     * Produce los campos encriptados necesarios para que el frontend
+     * construya el form POST hacia la pasarela (mock o real).
      *
-     * @param idSolicitud  ID interno de la solicitud.
-     * @param nroTramite   Número de trámite (se usa como ID de comercio).
+     * El campo CallbackSuccess encripta la URL del backend para que
+     * la pasarela notifique automáticamente el resultado del pago.
+     *
+     * @param idSolicitud   ID interno de la solicitud.
+     * @param nroTramite    Número de trámite (TransaccionComercioId del form).
      * @param montoCentavos Monto en centavos (ej: 150000 = $1500.00).
-     * @return Resultado con la URL de pago e ID de la orden.
+     * @return Resultado con urlPago, idOrdenPago y formularioDatos encriptados.
      */
     public ResultadoOrdenPago crearOrdenPago(Long idSolicitud,
                                               String nroTramite,
                                               long montoCentavos) {
         if ("sim".equalsIgnoreCase(paymentMode)) {
-            return crearOrdenSimulada(idSolicitud, nroTramite);
+            return crearOrdenConFormulario(idSolicitud, nroTramite, montoCentavos);
         }
 
-        // Modo real: aquí iría la integración con PlusPagos
-        // Por ahora lanzamos excepción hasta que se implemente
+        // Modo real: aquí iría la integración con PlusPagos producción.
         throw new UnsupportedOperationException(
             "Modo REAL de PlusPagos no implementado en esta versión."
         );
     }
 
     /**
-     * Valida la firma HMAC-SHA256 del webhook de PlusPagos.
+     * Valida la firma HMAC-SHA256 del webhook/callback de PlusPagos.
      *
-     * PlusPagos firma el payload con el HMAC secret compartido
-     * y lo envía en el header X-PlusPagos-Signature.
-     * Nosotros recalculamos la firma y comparamos.
+     * En modo SIM se bypasea la validación porque el mock no firma
+     * los callbacks (ver sendCallback en server.js del mock).
+     * En modo real se valida estrictamente.
      *
-     * Si las firmas no coinciden → el webhook no viene de PlusPagos
-     * → rechazamos con 401.
-     *
-     * En modo simulación usamos el secret 'dev-secret'.
-     *
-     * @param payload   Cuerpo del request como String.
-     * @param firma     Valor del header X-PlusPagos-Signature.
-     * @return true si la firma es válida.
+     * @param payload Cuerpo del request como String.
+     * @param firma   Valor del header X-PlusPagos-Signature.
+     * @return true si la firma es válida (o si estamos en modo SIM).
      */
     public boolean validarFirmaHmac(String payload, String firma) {
+        // En modo SIM el mock no agrega firma HMAC en los callbacks.
+        // Ver función sendCallback() en pluspagos-mock/server.js.
+        if ("sim".equalsIgnoreCase(paymentMode)) {
+            log.debug("Modo SIM: validación HMAC omitida.");
+            return true;
+        }
+
         if (firma == null || firma.isBlank()) {
             log.warn("Webhook recibido sin header de firma HMAC.");
             return false;
@@ -94,8 +111,6 @@ public class PagoService {
             String firmaCalculada = calcularHmac(payload, hmacSecret);
 
             // Comparación en tiempo constante para evitar timing attacks.
-            // No usamos .equals() porque su tiempo varía según la posición
-            // del primer carácter diferente, lo que permite ataques de timing.
             boolean valida = MessageDigest.isEqual(
                 firmaCalculada.getBytes(StandardCharsets.UTF_8),
                 firma.getBytes(StandardCharsets.UTF_8)
@@ -120,24 +135,20 @@ public class PagoService {
      *
      * Códigos según SPEC.md sección 7:
      *   0  → APROBADA  → solicitud pasa a PAGADO
+     *   3  → REALIZADA → solicitud pasa a PAGADO (código del mock)
      *   4  → RECHAZADA → solicitud pasa a VENCIDO
      *   7  → EXPIRADA  → solicitud pasa a VENCIDO
      *   8  → CANCELADA → solicitud pasa a VENCIDO
      *   9  → DEVUELTA  → solicitud pasa a VENCIDO
      *   11 → VENCIDA   → solicitud pasa a VENCIDO
-     *
-     * @param codigoEstado Código numérico recibido en el webhook.
-     * @return ResultadoPago.APROBADO o ResultadoPago.RECHAZADO
      */
     public ResultadoPago interpretarCodigoEstado(int codigoEstado) {
         return switch (codigoEstado) {
-            // 0 = APROBADA (spec original PlusPagos)
-            // 3 = REALIZADA (código usado por el mock PlusPagos-Simple)
             case 0, 3 -> ResultadoPago.APROBADO;
             case 4, 7, 8, 9, 11 -> ResultadoPago.RECHAZADO;
             default -> {
-                log.warn("Código de estado PlusPagos desconocido: {}",
-                        codigoEstado);
+                log.warn("Código de estado PlusPagos desconocido: {}. " +
+                        "Se trata como RECHAZADO por seguridad.", codigoEstado);
                 yield ResultadoPago.RECHAZADO;
             }
         };
@@ -148,23 +159,67 @@ public class PagoService {
     // -------------------------------------------------------
 
     /**
-     * Genera una orden de pago simulada.
-     * No llama a ninguna API externa.
+     * Genera la orden de pago con todos los campos del formulario encriptados.
+     *
+     * Este método produce el formularioDatos que el frontend usa para
+     * construir un form HTML con POST automático hacia la pasarela.
+     *
+     * Campos encriptados con AES-256-CBC (PlusPagosCrypto):
+     *   - Monto:           monto en centavos como string
+     *   - CallbackSuccess: URL que el mock llamará cuando el pago sea aprobado
+     *   - CallbackCancel:  URL que el mock llamará cuando el pago sea rechazado
+     *   - UrlSuccess:      URL a la que el mock redirigirá al usuario si aprueba
+     *   - UrlError:        URL a la que el mock redirigirá al usuario si rechaza
+     *
+     * Campos en texto plano:
+     *   - Comercio:              GUID del comercio (merchantGuid)
+     *   - TransaccionComercioId: nroTramite (lo usa el mock como comercioId en el callback)
+     *   - Informacion:           descripción del pago
      */
-    private ResultadoOrdenPago crearOrdenSimulada(Long idSolicitud,
-                                                   String nroTramite) {
+    private ResultadoOrdenPago crearOrdenConFormulario(Long idSolicitud,
+                                                        String nroTramite,
+                                                        long montoCentavos) {
         String idOrden = "SIM-" + UUID.randomUUID()
                                       .toString()
                                       .replace("-", "")
                                       .substring(0, 16)
                                       .toUpperCase();
 
-        String urlPago = apiUrl + "/sim/pago/" + idOrden;
+        // URL raíz de la pasarela (mock en dev, PlusPagos en prod)
+        String urlPago = apiUrl;
 
-        log.info("Orden de pago SIMULADA creada. idSolicitud={} idOrden={} url={}",
-                idSolicitud, idOrden, urlPago);
+        // URL del backend que el mock llamará al terminar el pago.
+        // El mock la desencripta del form y hace POST con el resultado.
+        String callbackUrl = serverBaseUrl + "/api/v1/webhooks/pluspagos/callback";
 
-        return new ResultadoOrdenPago(idOrden, urlPago, true);
+        // URLs de redirección del usuario en el browser
+        String urlExito = serverBaseUrl + "/pago/exito?nro=" + nroTramite;
+        String urlError  = serverBaseUrl + "/pago/error?nro=" + nroTramite;
+
+        Map<String, String> formulario = new LinkedHashMap<>();
+
+        // Campos en texto plano
+        formulario.put("Comercio",              merchantGuid);
+        formulario.put("TransaccionComercioId", nroTramite);
+        formulario.put("Informacion",           "Certificado RDAM - " + nroTramite);
+
+        // Campos encriptados con AES-256-CBC
+        try {
+            formulario.put("Monto",           PlusPagosCrypto.encrypt(
+                                                  String.valueOf(montoCentavos), secretKey));
+            formulario.put("CallbackSuccess", PlusPagosCrypto.encrypt(callbackUrl, secretKey));
+            formulario.put("CallbackCancel",  PlusPagosCrypto.encrypt(callbackUrl, secretKey));
+            formulario.put("UrlSuccess",      PlusPagosCrypto.encrypt(urlExito, secretKey));
+            formulario.put("UrlError",        PlusPagosCrypto.encrypt(urlError, secretKey));
+        } catch (Exception e) {
+            log.error("Error encriptando campos del formulario de pago: {}", e.getMessage());
+            throw new RuntimeException("No se pudo generar el formulario de pago.", e);
+        }
+
+        log.info("Formulario de pago generado. idSolicitud={} nroTramite={} idOrden={} callbackUrl={}",
+                idSolicitud, nroTramite, idOrden, callbackUrl);
+
+        return new ResultadoOrdenPago(idOrden, urlPago, true, formulario);
     }
 
     /**
@@ -193,12 +248,18 @@ public class PagoService {
 
     /**
      * Resultado de crear una orden de pago.
-     * Record: clase inmutable con getter automático por Java.
+     *
+     * formularioDatos contiene los campos listos para el form POST:
+     *   - campos planos (Comercio, TransaccionComercioId, Informacion)
+     *   - campos AES encriptados (Monto, Callback*, Url*)
+     *
+     * El frontend itera este map para construir los inputs del form.
      */
     public record ResultadoOrdenPago(
             String idOrdenPago,
             String urlPago,
-            boolean modoSimulacion
+            boolean modoSimulacion,
+            Map<String, String> formularioDatos
     ) {}
 
     /**

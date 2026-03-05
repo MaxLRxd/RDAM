@@ -1,0 +1,747 @@
+{
+  "info": {
+    "_postman_id": "0b9bf12b-351a-4daa-a823-7b46f851836e",
+    "name": "RDAM",
+    "description": "Colección completa para testear el sistema RDAM.\n\nFlujo ciudadano: crear-solicitud → ValidarOTP → orden-pago → (callback aprobado o rechazado) → Consultar-Estado\nFlujo interno: login-interino → listar-solicitudes → subir-certificado → descarga-certificado\n\nVariable base_url debe apuntar a http://localhost:8080/api/v1\n\n--- FLUJOS DE PAGO ---\n\nFlujo Postman (rápido, solo backend):\n  orden-pago → callback-pago-aprobado → Consultar-Estado\n\nFlujo real (integración completa con el mock en Docker):\n  orden-pago → copiar formularioDatos de la respuesta → submit al mock en localhost:3000 → ingresar tarjeta 4242... → mock llama automáticamente al callback → Consultar-Estado",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "40343198"
+  },
+  "item": [
+    {
+      "name": "Portal Ciudadano",
+      "item": [
+        {
+          "name": "healthy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "crear-solicitud",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set(\"id_solicitud\", body.idSolicitud);",
+                  "pm.environment.set(\"nro_tramite\", body.nroTramite);",
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Tiene idSolicitud\", () => pm.expect(body.idSolicitud).to.be.a('number'));",
+                  "pm.test(\"Tiene nroTramite\", () => pm.expect(body.nroTramite).to.match(/^RDAM-/));",
+                  "",
+                  "console.log('ID Solicitud:', body.idSolicitud);",
+                  "console.log('Nro Tramite:', body.nroTramite);",
+                  "console.log('Mensaje:', body.mensaje);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"dniCuil\": \"20123456789\",\r\n  \"email\": \"ciudadano@test.com\",\r\n  \"idCircunscripcion\": 2\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/solicitudes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ValidarOTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set(\"token_ciudadano\", body.tokenAcceso);",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tiene tokenAcceso\", () => pm.expect(body.tokenAcceso).to.be.a('string'));",
+                  "",
+                  "console.log('Token ciudadano guardado (primeros 16 chars):', body.tokenAcceso?.substring(0, 16) + '...');",
+                  "console.log('>>> Siguiente paso: ir a http://localhost:8025 para ver el OTP si aún no lo hiciste.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"codigo\": \"{{otp_code}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/solicitudes/{{id_solicitud}}/validar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{id_solicitud}}",
+                "validar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar-Estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "console.log('Estado actual:', body.estado);",
+                  "console.log('Respuesta completa:', JSON.stringify(body, null, 2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ciudadano}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/solicitudes/{{nro_tramite}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{nro_tramite}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pasarela de Pagos",
+      "description": "Flujo de pago completo.\n\nOPCIÓN A — Solo backend (rápido):\n  1. orden-pago: genera formularioDatos con campos AES encriptados\n  2. callback-pago-aprobado o callback-pago-rechazado: simulás la notificación del mock\n  3. Consultar-Estado: verificás el nuevo estado\n\nOPCIÓN B — Integración real con el mock Docker:\n  1. orden-pago: copiás el formularioDatos de la respuesta\n  2. Abrís el browser, pegás el snippet JS de la consola con los valores\n  3. El browser hace POST a localhost:3000, el mock muestra el formulario de tarjeta\n  4. Ingresás 4242 4242 4242 4242 (aprobada) o 4000 0000 0000 0002 (rechazada)\n  5. El mock llama automáticamente al callback del backend\n  6. Consultar-Estado: verificás el nuevo estado",
+      "item": [
+        {
+          "name": "orden-pago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "// Guardar IDs principales",
+                  "pm.environment.set('id_orden_pago', body.idOrdenPago);",
+                  "pm.environment.set('url_pago',      body.urlPago);",
+                  "",
+                  "// Guardar campos del formulario para inspeccion o submit manual al mock",
+                  "if (body.formularioDatos) {",
+                  "    pm.environment.set('form_comercio',    body.formularioDatos.Comercio);",
+                  "    pm.environment.set('form_txn_id',      body.formularioDatos.TransaccionComercioId);",
+                  "    pm.environment.set('form_monto',       body.formularioDatos.Monto);",
+                  "    pm.environment.set('form_callback_ok', body.formularioDatos.CallbackSuccess);",
+                  "    pm.environment.set('form_callback_ko', body.formularioDatos.CallbackCancel);",
+                  "    pm.environment.set('form_url_exito',   body.formularioDatos.UrlSuccess);",
+                  "    pm.environment.set('form_url_error',   body.formularioDatos.UrlError);",
+                  "}",
+                  "",
+                  "pm.test('Status 200',                     () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene urlPago',                  () => pm.expect(body.urlPago).to.be.a('string'));",
+                  "pm.test('Tiene formularioDatos',          () => pm.expect(body.formularioDatos).to.be.an('object'));",
+                  "pm.test('formularioDatos tiene Comercio', () => pm.expect(body.formularioDatos.Comercio).to.exist);",
+                  "pm.test('Monto encriptado',               () => pm.expect(body.formularioDatos.Monto).to.be.a('string'));",
+                  "pm.test('CallbackSuccess encriptado',     () => pm.expect(body.formularioDatos.CallbackSuccess).to.be.a('string'));",
+                  "",
+                  "console.log('=== ORDEN DE PAGO ===');",
+                  "console.log('ID Orden:',   body.idOrdenPago);",
+                  "console.log('URL Mock:',   body.urlPago);",
+                  "console.log('nroTramite:', body.formularioDatos?.TransaccionComercioId);",
+                  "console.log('Comercio:',   body.formularioDatos?.Comercio);",
+                  "console.log('Campos del formulario:', Object.keys(body.formularioDatos || {}).join(', '));",
+                  "",
+                  "console.log('');",
+                  "console.log('=== OPCION A: Simular callback desde Postman ===');",
+                  "console.log('Ejecutá callback-pago-aprobado o callback-pago-rechazado.');",
+                  "",
+                  "console.log('');",
+                  "console.log('=== OPCION B: Flujo real con el mock en localhost:3000 ===');",
+                  "console.log('Pegá en la consola del browser (F12) el siguiente snippet,');",
+                  "console.log('reemplazando los valores encriptados con los de formularioDatos:');",
+                  "console.log('');",
+                  "const fd = body.formularioDatos || {};",
+                  "const snippet = `const form = document.createElement('form');",
+                  "form.method = 'POST';",
+                  "form.action = '${body.urlPago}';",
+                  "const campos = ${JSON.stringify(fd, null, 2)};",
+                  "for (const [k, v] of Object.entries(campos)) {",
+                  "  const i = document.createElement('input');",
+                  "  i.name = k; i.value = v;",
+                  "  form.appendChild(i);",
+                  "}",
+                  "document.body.appendChild(form);",
+                  "form.submit();`;",
+                  "console.log(snippet);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ciudadano}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/solicitudes/{{id_solicitud}}/pago/crear",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{id_solicitud}}",
+                "pago",
+                "crear"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "callback-pago-aprobado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// En modo SIM el backend bypasea la validación HMAC (ver PagoService.validarFirmaHmac).",
+                  "// Igual firmamos para simular el comportamiento real.",
+                  "",
+                  "var hmacSecret = pm.environment.get('hmac_secret') || 'clave-secreta-campus-2026';",
+                  "var nroTramite = pm.environment.get('nro_tramite');",
+                  "",
+                  "var body = JSON.stringify({",
+                  "    transaccionId: 123456,",
+                  "    comercioId: nroTramite,",
+                  "    monto: '1500.00',",
+                  "    estado: 'approved',",
+                  "    fecha: new Date().toISOString()",
+                  "});",
+                  "",
+                  "var hash = CryptoJS.HmacSHA256(body, hmacSecret);",
+                  "var firma = CryptoJS.enc.Hex.stringify(hash);",
+                  "",
+                  "pm.environment.set('callback_body', body);",
+                  "pm.environment.set('hmac_firma', firma);",
+                  "",
+                  "console.log('Callback body:', body);",
+                  "console.log('HMAC firma:', firma);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — pago procesado', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Pago APROBADO procesado correctamente.');",
+                  "    console.log('La solicitud debería estar en estado PAGADO.');",
+                  "    console.log('>>> Ejecutá Consultar-Estado para verificar.');",
+                  "} else if (pm.response.code === 401) {",
+                  "    console.log('ERROR: Firma HMAC rechazada. Verificar hmac_secret.');",
+                  "} else if (pm.response.code === 404) {",
+                  "    console.log('ERROR: Solicitud no encontrada. Verificar nro_tramite.');",
+                  "} else if (pm.response.code === 400) {",
+                  "    console.log('ERROR 400:', pm.response.text());",
+                  "    console.log('Puede que la solicitud ya no esté en estado PENDIENTE.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-PlusPagos-Signature",
+                "value": "{{hmac_firma}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{callback_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/pluspagos/callback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks",
+                "pluspagos",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "callback-pago-rechazado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var hmacSecret = pm.environment.get('hmac_secret') || 'clave-secreta-campus-2026';",
+                  "var nroTramite = pm.environment.get('nro_tramite');",
+                  "",
+                  "var body = JSON.stringify({",
+                  "    transaccionId: 789012,",
+                  "    comercioId: nroTramite,",
+                  "    monto: '1500.00',",
+                  "    estado: 'rejected',",
+                  "    fecha: new Date().toISOString()",
+                  "});",
+                  "",
+                  "var hash = CryptoJS.HmacSHA256(body, hmacSecret);",
+                  "var firma = CryptoJS.enc.Hex.stringify(hash);",
+                  "",
+                  "pm.environment.set('callback_body_rejected', body);",
+                  "pm.environment.set('hmac_firma_rejected', firma);",
+                  "",
+                  "console.log('Callback body (rechazado):', body);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — rechazo procesado', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Pago RECHAZADO procesado correctamente.');",
+                  "    console.log('La solicitud debería estar en estado VENCIDO.');",
+                  "    console.log('>>> Ejecutá Consultar-Estado para verificar.');",
+                  "} else if (pm.response.code === 400) {",
+                  "    console.log('ERROR 400:', pm.response.text());",
+                  "    console.log('Puede que la solicitud ya no esté en estado PENDIENTE.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-PlusPagos-Signature",
+                "value": "{{hmac_firma_rejected}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{callback_body_rejected}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/pluspagos/callback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks",
+                "pluspagos",
+                "callback"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "webhook-pago (global/legacy)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Webhook global: formato PascalCase, busca por idOrdenPago en DB.",
+                  "// NOTA: solo funciona si el idOrdenPago del mock coincide con el guardado",
+                  "// en la solicitud. En el flujo real el mock lo envía automáticamente.",
+                  "// Para tests manuales usar callback-pago-aprobado que busca por nroTramite.",
+                  "",
+                  "var hmacSecret = pm.environment.get('hmac_secret') || 'clave-secreta-campus-2026';",
+                  "var nroTramite = pm.environment.get('nro_tramite');",
+                  "",
+                  "var body = JSON.stringify({",
+                  "    Tipo: 'PAGO',",
+                  "    TransaccionPlataformaId: '999999',",
+                  "    TransaccionComercioId: nroTramite,",
+                  "    Monto: '1500.00',",
+                  "    EstadoId: '3',",
+                  "    Estado: 'REALIZADA',",
+                  "    FechaProcesamiento: new Date().toISOString()",
+                  "});",
+                  "",
+                  "var hash = CryptoJS.HmacSHA256(body, hmacSecret);",
+                  "var firma = CryptoJS.enc.Hex.stringify(hash);",
+                  "",
+                  "pm.environment.set('webhook_body', body);",
+                  "pm.environment.set('hmac_firma_webhook', firma);",
+                  "",
+                  "console.log('Webhook body:', body);",
+                  "console.log('HMAC firma:', firma);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Webhook procesado. Solicitud debería estar en PAGADO.');",
+                  "} else if (pm.response.code === 404) {",
+                  "    console.log('ERROR 404: No encontró solicitud por idOrdenPago.');",
+                  "    console.log('El webhook global busca por findByIdOrdenPago().');",
+                  "    console.log('Usá callback-pago-aprobado que busca por nroTramite.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-PlusPagos-Signature",
+                "value": "{{hmac_firma_webhook}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{webhook_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/pluspagos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "webhooks",
+                "pluspagos"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Panel Interno",
+      "item": [
+        {
+          "name": "login-interino",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set('jwt_interno', body.accessToken);",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene accessToken', () => pm.expect(body.accessToken).to.be.a('string'));",
+                  "",
+                  "console.log('JWT guardado (primeros 32 chars):', body.accessToken?.substring(0, 32) + '...');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"admin@rdam.santafe.gob.ar\",\r\n  \"password\": \"Admin1234!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listar-solicitudes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "console.log('Total solicitudes:', body.totalElements);",
+                  "if (body.content && body.content.length > 0) {",
+                  "    body.content.forEach(s => {",
+                  "        console.log(`  ${s.nroTramite} | ${s.estado} | ${s.dniCuil}`);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_interno}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/solicitudes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "subir-certificado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.environment.set('token_descarga', body.tokenDescarga);",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene tokenDescarga', () => pm.expect(body.tokenDescarga).to.be.a('string'));",
+                  "",
+                  "console.log('Token descarga:', body.tokenDescarga);",
+                  "console.log('URL descarga:', body.urlDescarga);",
+                  "console.log('Vigencia (dias):', body.vigenciaDias);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_interno}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/solicitudes/{{id_solicitud}}/certificado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "solicitudes",
+                "{{id_solicitud}}",
+                "certificado"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "descarga-certificado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type es PDF', () => {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+                  "});",
+                  "console.log('Certificado descargado. Tamaño:', pm.response.responseSize, 'bytes');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/certificados/{{token_descarga}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "certificados",
+                "{{token_descarga}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "hmac_secret",
+      "value": "clave-secreta-campus-2026"
+    }
+  ]
+}
