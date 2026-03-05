@@ -6,7 +6,8 @@
 
 ---
 ## Scripts para levantar proyecto
-> **Spring boot** $env:SERVER_BASE_URL="http://host.docker.internal:8080"; .\mvnw.cmd spring-boot:run
+> **Spring boot windows** $env:SERVER_BASE_URL="http://host.docker.internal:8080"; .\mvnw.cmd spring-boot:run
+> **Spring boot linux** mvn spring-boot:run
 > **Docker** docker compose up -d
 
 
