@@ -1,0 +1,1051 @@
+{
+	"info": {
+		"_postman_id": "rdam-collection-2026",
+		"name": "RDAM - Sistema Completo",
+		"description": "Colección completa para testear el backend del Sistema RDAM (Registro de Deudores Alimentarios Morosos).\n\nBase URL: http://localhost:8080/api/v1\n\n## Flujo típico de testing:\n1. Health Check\n2. Crear Solicitud → copiar OTP de MailHog (http://localhost:8025)\n3. Validar OTP → obtiene token ciudadano\n4. Consultar Estado\n5. Crear Orden de Pago\n6. Simular Callback Aprobado\n7. Login Admin/Operador\n8. Subir Certificado PDF\n9. Descargar Certificado",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "ciudadano_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "id_solicitud",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "nro_tramite",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "otp_code",
+			"value": "123456",
+			"type": "string"
+		},
+		{
+			"key": "token_descarga",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "id_usuario_creado",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Health & Setup",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Verifica que el backend esté levantado y respondiendo."
+					},
+					"response": []
+				}
+			],
+			"description": "Verificación inicial del estado del servidor."
+		},
+		{
+			"name": "1. Portal Ciudadano",
+			"item": [
+				{
+					"name": "1.1 Crear Solicitud",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201 || pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.idSolicitud) {",
+									"        pm.collectionVariables.set('id_solicitud', jsonData.idSolicitud);",
+									"        console.log('id_solicitud guardado: ' + jsonData.idSolicitud);",
+									"    }",
+									"    if (jsonData.nroTramite) {",
+									"        pm.collectionVariables.set('nro_tramite', jsonData.nroTramite);",
+									"        console.log('nro_tramite guardado: ' + jsonData.nroTramite);",
+									"    }",
+									"    pm.test('Solicitud creada exitosamente', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"    pm.test('Contiene nroTramite', function () {",
+									"        pm.expect(jsonData.nroTramite).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dniCuil\": \"30123456\",\n    \"email\": \"ciudadano@test.com\",\n    \"idCircunscripcion\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes"]
+						},
+						"description": "Crea una nueva solicitud de certificado RDAM.\n\nDespués de ejecutar, ir a MailHog (http://localhost:8025) para obtener el código OTP de 6 dígitos y copiarlo en la variable `otp_code`.\n\nCircunscripciones válidas: 1 (Santa Fe), 2 (Rosario), 3 (Venado Tuerto), 4 (Reconquista), 5 (Rafaela)"
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Validar OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('ciudadano_token', jsonData.token);",
+									"        console.log('ciudadano_token guardado: ' + jsonData.token);",
+									"    }",
+									"    if (jsonData.nroTramite) {",
+									"        pm.collectionVariables.set('nro_tramite', jsonData.nroTramite);",
+									"    }",
+									"    pm.test('OTP validado exitosamente', function () {",
+									"        pm.expect(pm.response.code).to.eql(200);",
+									"    });",
+									"    pm.test('Contiene token ciudadano', function () {",
+									"        pm.expect(jsonData.token).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"codigo\": \"{{otp_code}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/validar",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "validar"]
+						},
+						"description": "Valida el código OTP de 6 dígitos enviado por email.\n\n⚠️ IMPORTANTE: Antes de ejecutar, copiar el OTP de MailHog (http://localhost:8025) a la variable `otp_code`.\n\nMáximo 3 intentos. TTL del OTP: 15 minutos."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Consultar Estado de Solicitud",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.test('Estado obtenido', function () {",
+									"        pm.expect(jsonData.estado).to.be.a('string');",
+									"    });",
+									"    if (jsonData.tokenDescarga) {",
+									"        pm.collectionVariables.set('token_descarga', jsonData.tokenDescarga);",
+									"        console.log('token_descarga guardado');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{ciudadano_token}}",
+								"description": "Token ciudadano (sin prefijo Bearer)"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{nro_tramite}}",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{nro_tramite}}"]
+						},
+						"description": "Consulta el estado actual de una solicitud por número de trámite.\n\nRequiere token ciudadano en header Authorization (sin Bearer).\n\nEstados posibles: PENDIENTE, PAGADO, PUBLICADO, PUBLICADO_VENCIDO, VENCIDO"
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Crear Orden de Pago",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.test('Orden de pago creada', function () {",
+									"        pm.expect(pm.response.code).to.eql(200);",
+									"    });",
+									"    if (jsonData.idOrdenPago) {",
+									"        console.log('idOrdenPago: ' + jsonData.idOrdenPago);",
+									"    }",
+									"    if (jsonData.formularioDatos) {",
+									"        console.log('formularioDatos recibido');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{ciudadano_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/pago/crear",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "pago", "crear"]
+						},
+						"description": "Genera una orden de pago encriptada para PlusPagos.\n\nRetorna formularioDatos con campos encriptados AES-256-CBC que el frontend usa para hacer auto-submit al mock de PlusPagos.\n\nMonto actual: $1500 (dev)"
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Descargar Certificado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Certificado descargado', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('pdf');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/certificados/{{token_descarga}}",
+							"host": ["{{base_url}}"],
+							"path": ["certificados", "{{token_descarga}}"]
+						},
+						"description": "Descarga el certificado PDF usando el token de descarga.\n\nEste endpoint es público (no requiere autenticación).\nEl token es de 64 caracteres (2 UUIDs concatenados).\nSolo funciona cuando la solicitud está en estado PUBLICADO."
+					},
+					"response": []
+				}
+			],
+			"description": "Flujo completo del ciudadano: crear solicitud → validar OTP → consultar estado → pagar → descargar certificado."
+		},
+		{
+			"name": "2. Pasarela de Pagos (Webhooks/Callbacks)",
+			"item": [
+				{
+					"name": "2.1 Callback - Pago Aprobado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Callback procesado', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"TransaccionComercioId\": \"{{nro_tramite}}\",\n    \"CodigoEstado\": 0,\n    \"Monto\": \"1500.00\",\n    \"FechaPago\": \"2026-03-05T12:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/webhooks/pluspagos/callback",
+							"host": ["{{base_url}}"],
+							"path": ["webhooks", "pluspagos", "callback"]
+						},
+						"description": "Simula un callback de PlusPagos con pago APROBADO.\n\nCódigos que aprueban: 0, 3\n\nEsto transiciona la solicitud de PENDIENTE → PAGADO.\n\nNota: En modo SIM no se valida firma HMAC."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Callback - Pago Rechazado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Callback rechazado procesado', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"TransaccionComercioId\": \"{{nro_tramite}}\",\n    \"CodigoEstado\": 4,\n    \"Monto\": \"1500.00\",\n    \"FechaPago\": \"2026-03-05T12:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/webhooks/pluspagos/callback",
+							"host": ["{{base_url}}"],
+							"path": ["webhooks", "pluspagos", "callback"]
+						},
+						"description": "Simula un callback de PlusPagos con pago RECHAZADO.\n\nCódigos que rechazan: 4 (rechazada), 7 (expirada), 8 (cancelada), 9 (devuelta), 11 (vencida)\n\nEsto transiciona la solicitud de PENDIENTE → VENCIDO."
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Webhook Global PlusPagos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Webhook procesado', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"idOrdenPago\": \"orden-test-001\",\n    \"codigoEstado\": 0,\n    \"monto\": \"1500.00\",\n    \"fechaPago\": \"2026-03-05T12:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/webhooks/pluspagos",
+							"host": ["{{base_url}}"],
+							"path": ["webhooks", "pluspagos"]
+						},
+						"description": "Webhook global de PlusPagos. Busca la solicitud por idOrdenPago (en vez de nroTramite).\n\nNota: Necesita que la solicitud tenga un idOrdenPago asignado (se asigna al crear la orden de pago)."
+					},
+					"response": []
+				}
+			],
+			"description": "Simulación de callbacks y webhooks de la pasarela de pagos PlusPagos.\n\nEn modo SIM (PAYMENT_MODE=sim) no se valida firma HMAC."
+		},
+		{
+			"name": "3. Panel Interno - Autenticación",
+			"item": [
+				{
+					"name": "3.1 Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('jwt_token', jsonData.token);",
+									"        console.log('jwt_token (admin) guardado');",
+									"    }",
+									"    pm.test('Login admin exitoso', function () {",
+									"        pm.expect(pm.response.code).to.eql(200);",
+									"        pm.expect(jsonData.token).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin@rdam.santafe.gob.ar\",\n    \"password\": \"Admin1234!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login con credenciales del administrador por defecto.\n\nEl JWT se guarda automáticamente en la variable `jwt_token`.\n\nJWT expira en 8 horas. Claims: sub, rol, circunscripcion, iat, exp."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Login Operador",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('jwt_token', jsonData.token);",
+									"        console.log('jwt_token (operador) guardado');",
+									"    }",
+									"    pm.test('Login operador exitoso', function () {",
+									"        pm.expect(pm.response.code).to.eql(200);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"operador@rdam.santafe.gob.ar\",\n    \"password\": \"Operador1234!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login con credenciales de operador.\n\n⚠️ Primero crear un operador usando el endpoint 'Crear Usuario Interno' con rol OPERADOR.\n\nModificar username/password según el usuario creado."
+					},
+					"response": []
+				}
+			],
+			"description": "Autenticación de usuarios internos (Admin y Operador)."
+		},
+		{
+			"name": "4. Panel Interno - Solicitudes",
+			"item": [
+				{
+					"name": "4.1 Listar Solicitudes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Solicitudes listadas', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes"]
+						},
+						"description": "Lista solicitudes según el rol:\n- OPERADOR: solo ve solicitudes de su circunscripción\n- ADMIN: ve todas las solicitudes\n\nSoporta filtros opcionales por query params (estado, circunscripción, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Listar Solicitudes (con filtros)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Solicitudes filtradas', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes?estado=PAGADO",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes"],
+							"query": [
+								{
+									"key": "estado",
+									"value": "PAGADO",
+									"description": "Filtrar por estado: PENDIENTE, PAGADO, PUBLICADO, PUBLICADO_VENCIDO, VENCIDO"
+								}
+							]
+						},
+						"description": "Lista solicitudes filtradas por estado.\n\nEstados válidos: PENDIENTE, PAGADO, PUBLICADO, PUBLICADO_VENCIDO, VENCIDO"
+					},
+					"response": []
+				},
+				{
+					"name": "4.3 Subir Certificado PDF",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Certificado subido', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.tokenDescarga) {",
+									"        pm.collectionVariables.set('token_descarga', jsonData.tokenDescarga);",
+									"        console.log('token_descarga guardado');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "archivo",
+									"type": "file",
+									"src": "",
+									"description": "Seleccionar un archivo PDF (máx 10MB)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/certificado",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "certificado"]
+						},
+						"description": "Sube un certificado PDF para una solicitud en estado PAGADO.\n\n⚠️ Seleccionar un archivo PDF en el campo 'archivo'.\n\nValidaciones:\n- La solicitud debe estar en estado PAGADO\n- Solo archivos PDF (máx 10MB)\n- El operador debe pertenecer a la misma circunscripción\n\nTransiciona la solicitud de PAGADO → PUBLICADO."
+					},
+					"response": []
+				},
+				{
+					"name": "4.4 Regenerar Token de Descarga",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Token regenerado', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.tokenDescarga) {",
+									"        pm.collectionVariables.set('token_descarga', jsonData.tokenDescarga);",
+									"        console.log('Nuevo token_descarga guardado');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/certificado/regenerar-token",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "certificado", "regenerar-token"]
+						},
+						"description": "Regenera el token de descarga del certificado sin reemplazar el archivo en MinIO.\n\nÚtil si el token anterior fue comprometido o el ciudadano necesita un nuevo enlace."
+					},
+					"response": []
+				}
+			],
+			"description": "Operaciones sobre solicitudes desde el panel interno (requiere JWT)."
+		},
+		{
+			"name": "5. Gestión de Usuarios Internos (Admin)",
+			"item": [
+				{
+					"name": "5.1 Crear Usuario Operador",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.id) {",
+									"        pm.collectionVariables.set('id_usuario_creado', jsonData.id);",
+									"        console.log('id_usuario_creado: ' + jsonData.id);",
+									"    }",
+									"    pm.test('Operador creado', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"operador@rdam.santafe.gob.ar\",\n    \"password\": \"Operador1234!\",\n    \"rol\": \"OPERADOR\",\n    \"idCircunscripcion\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/usuarios-internos",
+							"host": ["{{base_url}}"],
+							"path": ["usuarios-internos"]
+						},
+						"description": "Crea un nuevo usuario interno con rol OPERADOR.\n\nRequiere JWT de ADMIN.\n\nEl operador DEBE tener una circunscripción asignada (1-5).\nCircunscripciones: 1=Santa Fe, 2=Rosario, 3=Venado Tuerto, 4=Reconquista, 5=Rafaela"
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Crear Usuario Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.test('Admin creado', function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin2@rdam.santafe.gob.ar\",\n    \"password\": \"Admin1234!\",\n    \"rol\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/usuarios-internos",
+							"host": ["{{base_url}}"],
+							"path": ["usuarios-internos"]
+						},
+						"description": "Crea un nuevo usuario con rol ADMIN.\n\nRequiere JWT de ADMIN.\n\nEl admin NO tiene circunscripción asignada (puede ver todo)."
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Desactivar Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Estado de usuario cambiado', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"activo\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/usuarios-internos/{{id_usuario_creado}}/estado",
+							"host": ["{{base_url}}"],
+							"path": ["usuarios-internos", "{{id_usuario_creado}}", "estado"]
+						},
+						"description": "Desactiva un usuario interno. Un usuario desactivado es rechazado en tiempo real.\n\nRequiere JWT de ADMIN."
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Reactivar Usuario",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Usuario reactivado', function () {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/usuarios-internos/{{id_usuario_creado}}/estado",
+							"host": ["{{base_url}}"],
+							"path": ["usuarios-internos", "{{id_usuario_creado}}", "estado"]
+						},
+						"description": "Reactiva un usuario interno previamente desactivado.\n\nRequiere JWT de ADMIN."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de usuarios internos. Solo accesible por ADMIN."
+		},
+		{
+			"name": "6. Casos de Error",
+			"item": [
+				{
+					"name": "6.1 Crear Solicitud - Datos Inválidos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Validación rechazada (400)', function () {",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dniCuil\": \"\",\n    \"email\": \"no-es-email\",\n    \"idCircunscripcion\": 99\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes"]
+						},
+						"description": "Prueba de validación: datos inválidos.\nEspera respuesta 400 con formato RFC 7807 ProblemDetail."
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 OTP Inválido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('OTP rechazado', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"codigo\": \"000000\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/validar",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "validar"]
+						},
+						"description": "Envía un OTP incorrecto. Máximo 3 intentos antes de bloqueo."
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Acceso Sin Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Acceso denegado (401/403)', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/solicitudes",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes"]
+						},
+						"description": "Intenta acceder a endpoint protegido sin JWT. Espera 401 o 403."
+					},
+					"response": []
+				},
+				{
+					"name": "6.4 Login con Credenciales Inválidas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Login rechazado (401)', function () {",
+									"    pm.expect(pm.response.code).to.eql(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin@rdam.santafe.gob.ar\",\n    \"password\": \"ContraseñaIncorrecta\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login con password incorrecto. Espera 401."
+					},
+					"response": []
+				},
+				{
+					"name": "6.5 Solicitud No Encontrada",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Solicitud no encontrada (404)', function () {",
+									"    pm.expect(pm.response.code).to.eql(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{ciudadano_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/solicitudes/RDAM-99991231-9999",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "RDAM-99991231-9999"]
+						},
+						"description": "Consulta un nro de trámite inexistente. Espera 404 con formato RFC 7807."
+					},
+					"response": []
+				},
+				{
+					"name": "6.6 Subir Certificado - Estado Inválido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Transición inválida (400)', function () {",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "archivo",
+									"type": "file",
+									"src": "",
+									"description": "PDF de prueba"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/solicitudes/{{id_solicitud}}/certificado",
+							"host": ["{{base_url}}"],
+							"path": ["solicitudes", "{{id_solicitud}}", "certificado"]
+						},
+						"description": "Intenta subir certificado a una solicitud que NO está en estado PAGADO.\nEspera error 400 (EstadoInvalidoException)."
+					},
+					"response": []
+				}
+			],
+			"description": "Pruebas de casos de error: validaciones, autenticación fallida, transiciones inválidas, etc."
+		}
+	]
+}
