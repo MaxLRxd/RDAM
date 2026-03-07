@@ -85,6 +85,65 @@ services:
       - rdam-network
 
   # ============================================
+  # BACKEND — Spring Boot (RDAM)
+  # Se construye a partir del Dockerfile local.
+  # ============================================
+  backend:
+    build: .
+    container_name: rdam-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Servidor
+      SERVER_BASE_URL: http://backend:8080
+      # Base de datos — usa el nombre de servicio "mysql" como host
+      DB_URL: jdbc:mysql://mysql:3306/rdam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true&useSSL=false
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Redis — usa el nombre de servicio "redis" como host
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      # MinIO — usa el nombre de servicio "minio" como host
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: rdam-certificados
+      # Mail — apunta a MailHog (SMTP falso, ver emails en http://localhost:8025)
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      MAIL_FROM: rdam@local.dev
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      # PlusPagos mock — usa el nombre de servicio "pluspagos-mock" como host
+      PLUSPAGOS_API_URL: http://pluspagos-mock:3000
+      PLUSPAGOS_PUBLIC_URL: http://localhost:3000
+      PLUSPAGOS_HMAC_SECRET: ${PLUSPAGOS_HMAC_SECRET}
+      PLUSPAGOS_MERCHANT_GUID: ${PLUSPAGOS_MERCHANT_GUID}
+      PLUSPAGOS_SECRET_KEY: ${PLUSPAGOS_SECRET_KEY}
+      PAYMENT_MODE: sim
+      SIM_AUTO_APPROVE: "false"
+      # Reglas de negocio
+      VENCIMIENTO_PENDIENTE_DIAS: "1"
+      VALIDEZ_CERTIFICADO_DIAS: "2"
+      MONTO_ARANCEL: "1500.00"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      pluspagos-mock:
+        condition: service_started
+    networks:
+      - rdam-network
+
+  # ============================================
   # PLUSPAGOS MOCK — Simulador de pasarela de pagos
   # Los archivos server.js y crypto.js que subiste.
   # ============================================

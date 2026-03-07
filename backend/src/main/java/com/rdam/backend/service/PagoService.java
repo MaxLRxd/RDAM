@@ -50,6 +50,9 @@ public class PagoService {
     @Value("${rdam.payment.api-url}")
     private String apiUrl;
 
+    @Value("${rdam.payment.public-url}")
+    private String publicUrl;
+
     @Value("${server.base-url:http://localhost:8080}")
     private String serverBaseUrl;
 
@@ -185,8 +188,11 @@ public class PagoService {
                                       .substring(0, 16)
                                       .toUpperCase();
 
-        // URL raíz de la pasarela (mock en dev, PlusPagos en prod)
-        String urlPago = apiUrl;
+        // URL pública accesible desde el navegador del ciudadano.
+        // apiUrl es la URL interna de Docker (pluspagos-mock:3000) usada
+        // para comunicación entre contenedores.
+        // publicUrl es localhost:3000, la que el browser puede resolver.
+        String urlPago = publicUrl + "/sim/pago/" + idOrden;
 
         // URL del backend que el mock llamará al terminar el pago.
         // El mock la desencripta del form y hace POST con el resultado.

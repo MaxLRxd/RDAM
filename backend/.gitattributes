@@ -1,0 +1,6 @@
+# Forzar LF en scripts de Unix para que funcionen dentro de contenedores Linux
+mvnw text eol=lf
+*.sh  text eol=lf
+
+# El resto de archivos de texto usa los saltos de línea del sistema operativo
+* text=auto
