@@ -96,6 +96,7 @@ services:
     environment:
       # Servidor
       SERVER_BASE_URL: http://backend:8080
+      SERVER_PUBLIC_URL: http://localhost:8080
       # Base de datos — usa el nombre de servicio "mysql" como host
       DB_URL: jdbc:mysql://mysql:3306/rdam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true&useSSL=false
       DB_USERNAME: ${DB_USERNAME}

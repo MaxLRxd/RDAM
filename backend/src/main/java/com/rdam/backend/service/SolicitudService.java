@@ -75,6 +75,8 @@ public class SolicitudService {
     @Value("${server.base-url:http://localhost:8080}")
     private String baseUrl;
 
+    @Value("${server.public-url:http://localhost:8080}")
+    private String publicUrl;
     // Contador en memoria para el secuencial del nroTramite.
     // En producción con múltiples instancias esto debería
     // estar en Redis o usar una secuencia de DB.
@@ -562,7 +564,7 @@ public class SolicitudService {
         );
 
         // Construir URL pública de descarga
-        String urlDescarga = baseUrl + "/api/v1/certificados/" + tokenDescarga;
+        String urlDescarga = publicUrl + "/api/v1/certificados/" + tokenDescarga;
 
         // Notificar al ciudadano (async)
         emailService.notificarCertificadoDisponible(
