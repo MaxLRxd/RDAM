@@ -54,6 +54,17 @@ INSERT IGNORE INTO usuario_interno
     (username, password_hash, rol, id_circunscripcion, activo)
 VALUES
     (
+        'operador1@rdam.santafe.gob.ar',
+        '$2a$12$VSIaYnbpohM0wvIkpXmsSuIvctaWOjhFhP9aXHrNagCy0EZJLRGYm',
+        'OPERADOR',
+        NULL,
+        TRUE
+    );
+
+INSERT IGNORE INTO usuario_interno
+    (username, password_hash, rol, id_circunscripcion, activo)
+VALUES
+    (
         'admin@rdam.santafe.gob.ar',
         '$2a$12$VSIaYnbpohM0wvIkpXmsSuIvctaWOjhFhP9aXHrNagCy0EZJLRGYm',
         'ADMIN',
