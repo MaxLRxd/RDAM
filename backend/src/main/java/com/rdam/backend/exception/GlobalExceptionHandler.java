@@ -8,6 +8,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.security.core.AuthenticationException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -83,6 +84,24 @@ public class GlobalExceptionHandler {
                            "Token inválido",
                            ex.getMessage(),
                            request.getRequestURI());
+    }
+
+
+
+    /**
+     * 401 — Credenciales incorrectas o usuario no encontrado.
+     * Spring Security lanza BadCredentialsException o
+     * UsernameNotFoundException en el proceso de login.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthentication(
+            AuthenticationException ex,
+            HttpServletRequest request) {
+
+        return buildProblem(HttpStatus.UNAUTHORIZED,
+                        "Credenciales inválidas",
+                        "Usuario o contraseña incorrectos.",
+                        request.getRequestURI());
     }
 
     /**
