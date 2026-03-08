@@ -17,8 +17,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    # Healthcheck: Spring Boot esperará hasta que MySQL
-    # esté listo para aceptar conexiones antes de arrancar.
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
              "-u", "root", "-proot"]
@@ -36,8 +34,6 @@ services:
     container_name: rdam-redis
     ports:
       - "6379:6379"
-    # Sin contraseña en desarrollo local.
-    # En producción agregar: --requirepass ${REDIS_PASSWORD}
     command: redis-server
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -71,22 +67,51 @@ services:
       - rdam-network
 
   # ============================================
+  # MINIO INIT — Crea el bucket al primer arranque
+  # Usa el cliente mc (MinIO Client) para crear
+  # el bucket "rdam-certificados" con política privada.
+  # Se ejecuta una sola vez y termina (exit 0).
+  # ============================================
+  createbuckets:
+    image: minio/mc:latest
+    container_name: rdam-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+    entrypoint: >
+      /bin/sh -c "
+        echo '⏳ Esperando MinIO...' &&
+        mc alias set local http://minio:9000 $$MINIO_ACCESS_KEY $$MINIO_SECRET_KEY &&
+        if mc ls local/$$MINIO_BUCKET_NAME > /dev/null 2>&1; then
+          echo '✅ Bucket $$MINIO_BUCKET_NAME ya existe, nada que hacer.';
+        else
+          mc mb local/$$MINIO_BUCKET_NAME &&
+          mc anonymous set none local/$$MINIO_BUCKET_NAME &&
+          echo '✅ Bucket $$MINIO_BUCKET_NAME creado con política privada.';
+        fi
+      "
+    networks:
+      - rdam-network
+
+  # ============================================
   # MAILHOG — Servidor SMTP falso para desarrollo
-  # Captura todos los emails y los muestra en una UI web.
   # Ver emails enviados en: http://localhost:8025
   # ============================================
   mailhog:
     image: mailhog/mailhog:latest
     container_name: rdam-mailhog
     ports:
-      - "1025:1025"   # Puerto SMTP (Spring Mail apunta acá)
-      - "8025:8025"   # UI web para ver los emails
+      - "1025:1025"   # Puerto SMTP
+      - "8025:8025"   # UI web
     networks:
       - rdam-network
 
   # ============================================
   # BACKEND — Spring Boot (RDAM)
-  # Se construye a partir del Dockerfile local.
   # ============================================
   backend:
     build: .
@@ -97,20 +122,20 @@ services:
       # Servidor
       SERVER_BASE_URL: http://backend:8080
       SERVER_PUBLIC_URL: http://localhost:8080
-      # Base de datos — usa el nombre de servicio "mysql" como host
+      # Base de datos
       DB_URL: jdbc:mysql://mysql:3306/rdam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true&useSSL=false
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      # Redis — usa el nombre de servicio "redis" como host
+      # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      # MinIO — usa el nombre de servicio "minio" como host
+      # MinIO
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET_NAME: rdam-certificados
-      # Mail — apunta a MailHog (SMTP falso, ver emails en http://localhost:8025)
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      # Mail
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
       SMTP_USERNAME: ""
@@ -120,7 +145,7 @@ services:
       MAIL_FROM: rdam@local.dev
       # JWT
       JWT_SECRET: ${JWT_SECRET}
-      # PlusPagos mock — usa el nombre de servicio "pluspagos-mock" como host
+      # PlusPagos mock
       PLUSPAGOS_API_URL: http://pluspagos-mock:3000
       PLUSPAGOS_PUBLIC_URL: http://localhost:3000
       PLUSPAGOS_HMAC_SECRET: ${PLUSPAGOS_HMAC_SECRET}
@@ -139,6 +164,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      # FIX: el backend espera a que el bucket esté creado
+      # antes de arrancar para evitar el 500 en la primera subida.
+      createbuckets:
+        condition: service_completed_successfully
       pluspagos-mock:
         condition: service_started
     networks:
@@ -146,14 +175,11 @@ services:
 
   # ============================================
   # PLUSPAGOS MOCK — Simulador de pasarela de pagos
-  # Los archivos server.js y crypto.js que subiste.
   # ============================================
   pluspagos-mock:
     image: node:18-alpine
     container_name: rdam-pluspagos-mock
     working_dir: /app
-    # Copia los archivos del mock desde tu máquina al contenedor.
-    # Ajustá la ruta si tus archivos están en otro lugar.
     volumes:
       - ./pluspagos-mock:/app
     command: sh -c "npm install && node server.js"
@@ -163,15 +189,14 @@ services:
       - rdam-network
 
 # ============================================
-# VOLÚMENES — Persisten los datos entre reinicios
+# VOLÚMENES
 # ============================================
 volumes:
   mysql_data:
   minio_data:
 
 # ============================================
-# RED — Todos los servicios se ven entre sí
-# por nombre de contenedor (ej: "rdam-mysql")
+# RED
 # ============================================
 networks:
   rdam-network:
