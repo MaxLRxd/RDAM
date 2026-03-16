@@ -1,0 +1,76 @@
+/* NavCiudadano.module.css — Barra nav del portal ciudadano */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 0 32px;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link {
+  font-size: 13px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 0.15s, color 0.15s;
+  cursor: pointer;
+  background: none;
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+}
+
+.link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 800px) {
+  .nav {
+    padding: 0 16px;
+  }
+  .link {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}

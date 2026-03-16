@@ -100,6 +100,11 @@ public class SecurityConfig {
                 ).hasAnyRole("OPERADOR", "ADMIN")
 
                 // ENDPOINTS ADMIN — solo ADMIN
+                .requestMatchers(HttpMethod.GET,
+                    "/usuarios-internos",
+                    "/auditoria"
+                ).hasRole("ADMIN")
+
                 .requestMatchers(HttpMethod.POST,
                     "/usuarios-internos"
                 ).hasRole("ADMIN")

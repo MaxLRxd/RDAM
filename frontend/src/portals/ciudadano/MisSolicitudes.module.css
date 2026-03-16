@@ -1,0 +1,39 @@
+/* MisSolicitudes.module.css — Lista de solicitudes del ciudadano */
+
+.solItem {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.solItem:last-of-type {
+  border-bottom: none;
+}
+
+.solId {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent-light);
+  margin-bottom: 2px;
+}
+
+.solDni {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.solMeta {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+.solActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}

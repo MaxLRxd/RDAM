@@ -1,0 +1,35 @@
+/* Badge.module.css — Etiquetas de estado (tomado de .badge en la maqueta) */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.03em;
+}
+
+.pending {
+  background: rgba(184,122,0,.1);
+  color: var(--amber);
+}
+
+.pagado {
+  background: rgba(26,58,107,.1);
+  color: var(--accent);
+  border: 1px solid rgba(26,58,107,.2);
+}
+
+.issued {
+  background: rgba(21,106,64,.1);
+  color: var(--green);
+  border: 1px solid rgba(21,106,64,.2);
+}
+
+.rejected {
+  background: rgba(155,37,37,.1);
+  color: var(--red);
+}

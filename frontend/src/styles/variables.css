@@ -1,0 +1,56 @@
+/*
+ * variables.css — Sistema de diseño global del RDAM
+ * Extrae las CSS custom properties definidas en las maquetas originales.
+ * Se importa una sola vez en main.jsx para que estén disponibles en toda la app.
+ */
+
+:root {
+  /* Paleta de texto */
+  --ink:         #0f0f0f;
+  --ink-2:       #3a3a3a;
+  --ink-3:       #888;
+  --ink-4:       #bbb;
+
+  /* Paleta de superficies */
+  --line:        #e8e8e8;
+  --bg:          #fafafa;
+  --surface:     #ffffff;
+
+  /* Colores de acción / estado */
+  --accent:       #1a3a6b;
+  --accent-light: #2555a0;
+  --amber:        #b87a00;
+  --green:        #156a40;
+  --red:          #9b2525;
+
+  /* Dimensiones */
+  --r:            8px;        /* border-radius estándar */
+  --nav-h:        56px;       /* altura del nav sticky */
+}
+
+/* ─── Reset mínimo ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animación de entrada para las pantallas */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fadeUp 0.3s ease forwards;
+}

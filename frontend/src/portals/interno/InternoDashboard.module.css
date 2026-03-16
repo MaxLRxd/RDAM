@@ -1,0 +1,24 @@
+/* InternoDashboard.module.css — Shell del portal interno */
+
+.root {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'Sora', sans-serif;
+}
+
+/* El contenido principal se desplaza 220px por el sidebar fijo */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Área de contenido del panel activo */
+.panelArea {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}

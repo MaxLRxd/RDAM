@@ -1,0 +1,308 @@
+/*
+ * Steps.module.css — Estilos compartidos entre todos los steps del portal ciudadano.
+ *
+ * Centraliza los patrones de la maqueta: .card, .card-top, .card-body,
+ * .f-group, .f-label, .f-input, .f-select, .f-hint, .tl (timeline), etc.
+ */
+
+/* ─── CARD ─── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.cardTop {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardTop h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cardBody {
+  padding: 24px;
+}
+
+/* ─── FORM ─── */
+
+.fGroup {
+  margin-bottom: 18px;
+}
+
+.fLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.fInput,
+.fSelect {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+}
+
+.fInput:focus,
+.fSelect:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(26,58,107,.08);
+  background: var(--surface);
+}
+
+.fInputError {
+  border-color: var(--red) !important;
+}
+
+.fHint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.fError {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--red);
+}
+
+.fLink {
+  color: var(--accent-light);
+  text-decoration: none;
+}
+.fLink:hover {
+  text-decoration: underline;
+}
+
+/* ─── DIVIDER ─── */
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 18px 0;
+}
+
+/* ─── TIMELINE ─── */
+
+.tl {
+  list-style: none;
+  padding-left: 20px;
+  position: relative;
+}
+
+.tl::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.tlItem {
+  position: relative;
+  padding: 0 0 14px 14px;
+  font-size: 13px;
+}
+
+.tlItem::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--accent-light);
+}
+
+.tlAction {
+  font-weight: 600;
+}
+
+.tlTime {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 6px;
+}
+
+.tlDetail {
+  color: var(--ink-2);
+  margin-top: 1px;
+}
+
+/* ─── NRO TRAMITE BOX ─── */
+
+.tramiteBox {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.tramiteLabel {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tramiteValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: var(--accent);
+}
+
+/* ─── SOLICITUD INFO CARD ─── */
+
+.sCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.sHead {
+  background: var(--accent);
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sBody {
+  padding: 14px 16px;
+}
+
+.sRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.sRow:last-child {
+  border-bottom: none;
+}
+
+.sKey {
+  color: var(--ink-2);
+}
+
+.sVal {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* ─── PDF BOX ─── */
+
+.pdfBox {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  padding: 28px;
+  text-align: center;
+  background: var(--bg);
+}
+
+/* ─── OTP ─── */
+
+.otpRow {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 18px 0;
+}
+
+.otpDigit {
+  width: 44px;
+  height: 52px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 22px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--accent);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.otpDigit:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.otpDigitError {
+  border-color: var(--red) !important;
+  background: rgba(155,37,37,0.04);
+}
+
+/* ─── CENTER CONTENT ─── */
+
+.centerContent {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+
+.bigIcon {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+.centerTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.centerText {
+  color: var(--ink-2);
+  font-size: 14px;
+  max-width: 360px;
+  margin: 0 auto 20px;
+}
+
+/* ─── SECTION HEADER ─── */
+
+.sectionHeader {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}

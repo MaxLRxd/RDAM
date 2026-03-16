@@ -1,0 +1,81 @@
+/* Topbar.module.css — Barra superior de cada panel del Portal Interno */
+
+.topbar {
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  font-family: 'Sora', sans-serif;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.2;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Botón de acción en el topbar (ej: "+ Nuevo usuario") ── */
+.actionBtn {
+  height: 34px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionBtn:hover {
+  background: var(--accent-light);
+}
+
+/* ── Variante ghost (línea) ── */
+.actionBtnGhost {
+  height: 34px;
+  padding: 0 14px;
+  background: none;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.actionBtnGhost:hover {
+  background: rgba(26, 58, 107, 0.05);
+}

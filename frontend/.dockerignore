@@ -1,0 +1,14 @@
+# .dockerignore — Excluye archivos innecesarios del build context de Docker.
+#
+# Sin este archivo, `node_modules` (cientos de MB) se copiaría al daemon
+# en cada `docker build`, haciendo el proceso lento aunque el Dockerfile
+# ejecute `npm ci` desde cero dentro del contenedor.
+
+node_modules
+dist
+.git
+.gitignore
+README.md
+*.log
+.env
+.env.*

@@ -1,121 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+/**
+ * App.jsx — Enrutador raíz de la aplicación RDAM.
+ *
+ * Implementa un router hash minimalista sin dependencias externas.
+ * Rutas:
+ *   #/          → CiudadanoPage (portal público)
+ *   #/ciudadano → CiudadanoPage (portal público)
+ *   #/interno   → Portal interno (LoginPage o InternoDashboard según auth)
+ *
+ * Arquitectura de auth del portal interno:
+ *   AuthProvider envuelve toda la ruta #/interno.
+ *   Dentro, InternoApp decide si mostrar LoginPage o InternoDashboard
+ *   dependiendo de `isAuthenticated` de AuthContext.
+ *   Esto asegura que el contexto de auth esté disponible en ambos componentes.
+ */
 
-function App() {
-  const [count, setCount] = useState(0)
+import { useState, useEffect } from 'react'
+import { CiudadanoProvider } from './context/CiudadanoContext.jsx'
+import { CiudadanoPage }     from './portals/ciudadano/CiudadanoPage.jsx'
+import { AuthProvider }      from './context/AuthContext.jsx'
+import { useAuth }           from './hooks/useAuth.js'
+import { LoginPage }         from './portals/interno/LoginPage.jsx'
+import { InternoDashboard }  from './portals/interno/InternoDashboard.jsx'
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+/** Decide qué renderizar dentro del portal interno según el estado de autenticación */
+function InternoApp() {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <InternoDashboard /> : <LoginPage />
 }
 
-export default App
+function getRoute(hash) {
+  if (!hash || hash === '#' || hash === '#/' || hash === '#/ciudadano') return 'ciudadano'
+  if (hash.startsWith('#/interno')) return 'interno'
+  return 'ciudadano'
+}
+
+export default function App() {
+  const [route, setRoute] = useState(() => getRoute(window.location.hash))
+
+  useEffect(() => {
+    function onHashChange() {
+      setRoute(getRoute(window.location.hash))
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  if (route === 'interno') {
+    return (
+      <AuthProvider>
+        <InternoApp />
+      </AuthProvider>
+    )
+  }
+
+  return (
+    <CiudadanoProvider>
+      <CiudadanoPage />
+    </CiudadanoProvider>
+  )
+}

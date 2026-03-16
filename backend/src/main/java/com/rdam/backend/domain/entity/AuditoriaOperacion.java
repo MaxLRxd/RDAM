@@ -55,8 +55,16 @@ public class AuditoriaOperacion {
     private Long idUsuario;
 
     /**
+     * Nombre legible del actor. Desnormalizado para evitar JOINs al leer el log.
+     * Ejemplos: "op.rosario@justiciasantafe.gov.ar", "sistema", "ciudadano"
+     * Agregado en V8__auditoria_add_usuario_nombre.sql
+     */
+    @Column(name = "usuario_nombre", length = 100)
+    private String usuarioNombre;
+
+    /**
      * Tipo de operación realizada. Valores fijos definidos
-     * en AuditoriaOperacion.Operacion para evitar strings libres.
+     * en AuditoriaOperacion.Operaciones para evitar strings libres.
      */
     @Column(name = "operacion", nullable = false, length = 50)
     private String operacion;
@@ -102,13 +110,16 @@ public class AuditoriaOperacion {
      *   auditoria.setOperacion(AuditoriaOperacion.Operaciones.DESCARGA_CERTIFICADO);
      */
     public static final class Operaciones {
-        public static final String DESCARGA_CERTIFICADO = "DESCARGA_CERTIFICADO";
-        public static final String LOGIN_EXITOSO        = "LOGIN_EXITOSO";
-        public static final String LOGIN_FALLIDO        = "LOGIN_FALLIDO";
-        public static final String REGENERAR_TOKEN      = "REGENERAR_TOKEN";
-        public static final String CREAR_USUARIO        = "CREAR_USUARIO";
-        public static final String DESACTIVAR_USUARIO   = "DESACTIVAR_USUARIO";
-        public static final String SUBIR_CERTIFICADO    = "SUBIR_CERTIFICADO";
+        public static final String SOLICITUD_CREADA      = "SOLICITUD_CREADA";
+        public static final String PAGO_CONFIRMADO       = "PAGO_CONFIRMADO";
+        public static final String CERTIFICADO_PUBLICADO = "CERTIFICADO_PUBLICADO";
+        public static final String TOKEN_REGENERADO      = "TOKEN_REGENERADO";
+        public static final String DESCARGA_CERTIFICADO  = "DESCARGA_CERTIFICADO";
+        public static final String USUARIO_CREADO        = "USUARIO_CREADO";
+        public static final String USUARIO_ACTIVADO      = "USUARIO_ACTIVADO";
+        public static final String USUARIO_DESACTIVADO   = "USUARIO_DESACTIVADO";
+        public static final String LOGIN_EXITOSO         = "LOGIN_EXITOSO";
+        public static final String LOGIN_FALLIDO         = "LOGIN_FALLIDO";
 
         // Constructor privado: esta clase no se instancia
         private Operaciones() {}

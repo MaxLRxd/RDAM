@@ -1,0 +1,252 @@
+/* Modals.module.css — Estilos compartidos para los modales del Portal Interno */
+
+/* ── Overlay / fondo ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Sora', sans-serif;
+}
+
+/* ── Panel del modal ── */
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: modalIn 0.18s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+/* ── Cabecera ── */
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.closeBtn:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+/* ── Cuerpo ── */
+.modalBody {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+/* ── Grid de info (2 columnas) ── */
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.infoLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.infoValue {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.infoValueMono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ── Área de upload ── */
+.uploadArea {
+  border: 2px dashed var(--line);
+  border-radius: 10px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.uploadArea:hover,
+.uploadArea.dragOver {
+  border-color: var(--accent);
+  background: rgba(26, 58, 107, 0.03);
+}
+
+.uploadArea.hasFile {
+  border-color: var(--green);
+  background: rgba(21, 106, 64, 0.04);
+}
+
+.uploadIcon {
+  font-size: 28px;
+}
+
+.uploadTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.uploadSub {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.uploadFileName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Input file oculto */
+.fileInput {
+  display: none;
+}
+
+/* ── Pie del modal ── */
+.modalFoot {
+  padding: 16px 22px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ── Formulario (ModalNuevoUsuario) ── */
+.fGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: 0.01em;
+}
+
+.fInput {
+  height: 40px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r);
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: 'Sora', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fInput.fError {
+  border-color: var(--red);
+}
+
+.fSelect {
+  height: 40px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r);
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: 'Sora', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.fSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fErrorMsg {
+  font-size: 11px;
+  color: var(--red);
+}
+
+/* ── Hint / nota ── */
+.hint {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.4;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}

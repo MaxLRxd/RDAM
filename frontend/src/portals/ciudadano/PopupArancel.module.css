@@ -1,0 +1,54 @@
+/* PopupArancel.module.css — Modal de confirmación de arancel */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.box {
+  background: var(--surface);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.12);
+  border: 1px solid var(--line);
+  animation: popIn 0.2s ease forwards;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.icon {
+  font-size: 36px;
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.text {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}

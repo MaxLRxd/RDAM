@@ -1,0 +1,450 @@
+/* Panels.module.css — Estilos compartidos para todos los paneles internos */
+
+/* ── Wrapper principal de cada panel ── */
+.panelBody {
+  padding: 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ───────────────────────────────────────────────
+   DASHBOARD
+─────────────────────────────────────────────── */
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.metricCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.metricCard.metricAmber {
+  border-left: 3px solid var(--amber);
+}
+
+.metricCard.metricGreen {
+  border-left: 3px solid var(--green);
+}
+
+.metricIcon {
+  font-size: 24px;
+}
+
+.metricInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.dashGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dashCard {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashCardHead {
+  padding: 13px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.dashCardBody {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.quickBtn:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.activityContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.activityText {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+.activityTime {
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+/* ───────────────────────────────────────────────
+   TABLA DE SOLICITUDES
+─────────────────────────────────────────────── */
+
+.filterBar {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  height: 36px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r);
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: 'Sora', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  flex: 1;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filterSelect {
+  height: 36px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r);
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: 'Sora', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Chips de filtro de estado */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip.chipActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Tabla */
+.tableWrapper {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead tr {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--surface);
+}
+
+.monoText {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ── Botón de acción en tabla ── */
+.tableBtn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.tableBtn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tableBtn.tableBtnAmber {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.tableBtn.tableBtnAmber:hover {
+  background: var(--amber);
+  color: #fff;
+}
+
+/* ── Paginación ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.paginationBtns {
+  display: flex;
+  gap: 6px;
+}
+
+.pageBtn {
+  height: 32px;
+  min-width: 32px;
+  padding: 0 10px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageBtn.pageBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Estado vacío / cargando ── */
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.emptyState p {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* ───────────────────────────────────────────────
+   USUARIOS
+─────────────────────────────────────────────── */
+
+.usersTable {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.noEndpointBanner {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: #78550a;
+  line-height: 1.5;
+}
+
+/* ───────────────────────────────────────────────
+   AUDITORÍA
+─────────────────────────────────────────────── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  font-size: 13px;
+}
+
+.timelineItem:first-child {
+  border-radius: 10px 10px 0 0;
+}
+
+.timelineItem:last-child {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0 0 10px 10px;
+}
+
+.timelineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.timelineContent {
+  flex: 1;
+}
+
+.timelineAction {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.timelineMeta {
+  font-size: 12px;
+  color: var(--ink-3);
+  display: flex;
+  gap: 12px;
+}

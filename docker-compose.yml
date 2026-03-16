@@ -1,0 +1,265 @@
+# ============================================================
+# docker-compose.yml — Sistema RDAM · Compose unificado
+#
+# ─── COMANDO DE INICIO ───────────────────────────────────────
+#
+#   docker compose --env-file ./backend/.env up --build
+#
+# ¿Por qué --env-file?
+#   Docker Compose resuelve la sintaxis ${VAR} buscando un archivo
+#   `.env` en el directorio donde se ejecuta el comando (la raíz del
+#   proyecto). Como el `.env` vive en backend/, es necesario indicarlo
+#   explícitamente con este flag.
+#   Sin él, variables como ${DB_USERNAME} o ${MINIO_BUCKET_NAME}
+#   se interpolan como cadenas vacías y los contenedores fallan al iniciar.
+#
+# ─── SERVICIOS ───────────────────────────────────────────────
+#   mysql         → Base de datos MySQL 8
+#   redis         → Caché / tokens OTP efímeros
+#   minio         → Almacenamiento de certificados PDF (compatible S3)
+#   createbuckets → Init one-shot: crea el bucket en MinIO
+#   mailhog       → SMTP fake para capturar emails en desarrollo
+#   pluspagos-mock→ Simulador de pasarela de pagos PlusPagos
+#   backend       → API Spring Boot (puerto 8080 expuesto al host)
+#   frontend      → React + Vite servido por nginx (puerto 80)
+#
+# ─── URLs disponibles ────────────────────────────────────────
+#   http://localhost        → Portal Ciudadano / Portal Interno (nginx)
+#   http://localhost/api/v1 → API Spring Boot (vía nginx proxy)
+#   http://localhost:8080   → API Spring Boot (acceso directo, útil para Postman)
+#   http://localhost:8025   → MailHog UI (ver emails enviados)
+#   http://localhost:9001   → MinIO Console
+#   http://localhost:3000   → PlusPagos Mock (simulador de pagos)
+#
+# ─── Setup inicial ───────────────────────────────────────────
+#   cp backend/.env.example backend/.env   # y editar valores si hace falta
+#   docker compose --env-file ./backend/.env up --build
+#
+# ============================================================
+
+services:
+
+  # ============================================
+  # BASE DE DATOS — MySQL 8
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: rdam-mysql
+    env_file:
+      - ./backend/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rdam_db
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # REDIS — Tokens OTP efímeros
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: rdam-redis
+    ports:
+      - "6379:6379"
+    command: redis-server
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # MINIO — Almacenamiento de certificados PDF
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: rdam-minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - ./backend/.env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Consola web → http://localhost:9001
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdam-network
+
+  # ============================================
+  # MINIO INIT — Crea el bucket al primer arranque
+  # ============================================
+  createbuckets:
+    image: minio/mc:latest
+    container_name: rdam-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+    entrypoint: >
+      /bin/sh -c "
+        echo '⏳ Esperando MinIO...' &&
+        mc alias set local http://minio:9000 $$MINIO_ACCESS_KEY $$MINIO_SECRET_KEY &&
+        if mc ls local/$$MINIO_BUCKET_NAME > /dev/null 2>&1; then
+          echo '✅ Bucket $$MINIO_BUCKET_NAME ya existe, nada que hacer.';
+        else
+          mc mb local/$$MINIO_BUCKET_NAME &&
+          mc anonymous set none local/$$MINIO_BUCKET_NAME &&
+          echo '✅ Bucket $$MINIO_BUCKET_NAME creado con política privada.';
+        fi
+      "
+    networks:
+      - rdam-network
+
+  # ============================================
+  # MAILHOG — Servidor SMTP falso para desarrollo
+  # Ver emails en: http://localhost:8025
+  # ============================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: rdam-mailhog
+    ports:
+      - "1025:1025"   # Puerto SMTP
+      - "8025:8025"   # UI web
+    networks:
+      - rdam-network
+
+  # ============================================
+  # PLUSPAGOS MOCK — Simulador de pasarela de pagos
+  # ============================================
+  pluspagos-mock:
+    image: node:18-alpine
+    container_name: rdam-pluspagos-mock
+    working_dir: /app
+    volumes:
+      # IMPORTANTE: en el compose unificado (raíz del proyecto),
+      # el path debe ser relativo a la raíz, no al directorio backend/.
+      - ./backend/pluspagos-mock:/app
+    command: sh -c "npm install && node server.js"
+    ports:
+      - "3000:3000"
+    networks:
+      - rdam-network
+
+  # ============================================
+  # BACKEND — Spring Boot (RDAM API)
+  #
+  # build: ./backend  →  usa backend/Dockerfile
+  # El backend se expone directamente en :8080 para
+  # facilitar el uso de Postman/Insomnia en desarrollo.
+  # En producción solo debería ser accesible desde nginx.
+  # ============================================
+  backend:
+    build: ./backend
+    container_name: rdam-backend
+    env_file:
+      # Lee las variables de entorno desde backend/.env
+      # (copiado de backend/.env.example con valores reales)
+      - ./backend/.env
+    ports:
+      - "8080:8080"
+    environment:
+      # Servidor — URL interna (para links dentro de la red Docker)
+      SERVER_BASE_URL: http://backend:8080
+      # URL pública — la que ve el ciudadano en los emails.
+      # Con el compose unificado, el frontend está en el puerto 80 (nginx).
+      # Las requests de API llegan via nginx proxy → backend:8080.
+      SERVER_PUBLIC_URL: http://localhost
+      # Base de datos
+      DB_URL: jdbc:mysql://mysql:3306/rdam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true&useSSL=false
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      # MinIO
+      MINIO_ENDPOINT: http://minio:9000
+      # Mail
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      # PlusPagos — URL interna (Spring Boot → mock dentro de la red Docker)
+      PLUSPAGOS_API_URL: http://pluspagos-mock:3000
+      # URL pública — la que se le entrega al ciudadano para redirigir al pago
+      PLUSPAGOS_PUBLIC_URL: http://localhost:3000
+      PAYMENT_MODE: sim
+      SIM_AUTO_APPROVE: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+      pluspagos-mock:
+        condition: service_started
+    networks:
+      - rdam-network
+
+  # ============================================
+  # FRONTEND — React + Vite (servido por nginx)
+  #
+  # build: ./frontend  →  usa frontend/Dockerfile (multi-stage)
+  # nginx en puerto 80 cumple dos roles:
+  #   1. Servir los archivos estáticos del bundle de React
+  #   2. Proxy inverso: /api/* → http://backend:8080
+  #
+  # El frontend solo puede arrancar DESPUÉS del backend porque
+  # nginx necesita resolver el hostname "backend" en la red Docker.
+  # Si nginx arranca antes de que el servicio "backend" exista,
+  # las requests a /api/* fallarán con "upstream not found".
+  # ============================================
+  frontend:
+    build: ./frontend
+    container_name: rdam-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - rdam-network
+
+# ============================================
+# VOLÚMENES persistentes
+# ============================================
+volumes:
+  mysql_data:
+  minio_data:
+
+# ============================================
+# RED interna compartida por todos los servicios
+# ============================================
+networks:
+  rdam-network:
+    driver: bridge

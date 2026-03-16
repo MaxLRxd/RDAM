@@ -7,6 +7,7 @@ import com.rdam.backend.exception.CircunscripcionMismatchException;
 import com.rdam.backend.exception.EstadoInvalidoException;
 import com.rdam.backend.exception.SolicitudNotFoundException;
 import com.rdam.backend.exception.TokenInvalidoException;
+import com.rdam.backend.domain.entity.AuditoriaOperacion;
 import com.rdam.backend.domain.entity.Circunscripcion;
 import com.rdam.backend.domain.entity.Solicitud;
 import com.rdam.backend.domain.entity.SolicitudHistorialEstado;
@@ -65,6 +66,7 @@ public class SolicitudService {
     private final EmailService                   emailService;
     private final PagoService                    pagoService;
     private final CertificadoService             certificadoService;
+    private final AuditoriaService               auditoriaService;
 
     @Value("${rdam.negocio.monto-arancel}")
     private BigDecimal montoArancel;
@@ -579,6 +581,15 @@ public class SolicitudService {
                 usuario.getUsername(),
                 solicitud.getCircunscripcion().getNombre());
 
+        auditoriaService.registrar(
+                AuditoriaOperacion.Operaciones.CERTIFICADO_PUBLICADO,
+                "nroTramite=" + solicitud.getNroTramite()
+                    + " · circunscripcion=" + solicitud.getCircunscripcion().getNombre(),
+                usuario.getId(),
+                usuario.getUsername(),
+                idSolicitud
+        );
+
         return tokenDescarga;
     }
 
@@ -616,6 +627,14 @@ public class SolicitudService {
 
         log.info("Token de descarga regenerado. nroTramite={} operador={}",
                 solicitud.getNroTramite(), usuario.getUsername());
+
+        auditoriaService.registrar(
+                AuditoriaOperacion.Operaciones.TOKEN_REGENERADO,
+                "nroTramite=" + solicitud.getNroTramite(),
+                usuario.getId(),
+                usuario.getUsername(),
+                idSolicitud
+        );
 
         return nuevoToken;
     }

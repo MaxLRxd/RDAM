@@ -1,0 +1,40 @@
+/* Alert.module.css — Mensajes informativos (tomado de .alert en la maqueta) */
+
+.alert {
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  border: 1px solid transparent;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.info {
+  background: rgba(26,58,107,.05);
+  border-color: rgba(26,58,107,.12);
+  color: var(--accent);
+}
+
+.warn {
+  background: rgba(184,122,0,.06);
+  border-color: rgba(184,122,0,.15);
+  color: var(--amber);
+}
+
+.ok {
+  background: rgba(21,106,64,.06);
+  border-color: rgba(21,106,64,.15);
+  color: var(--green);
+}
+
+.error {
+  background: rgba(155,37,37,.06);
+  border-color: rgba(155,37,37,.2);
+  color: var(--red);
+}

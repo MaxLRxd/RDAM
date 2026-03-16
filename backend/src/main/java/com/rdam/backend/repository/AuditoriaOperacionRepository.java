@@ -17,6 +17,12 @@ public interface AuditoriaOperacionRepository
         extends JpaRepository<AuditoriaOperacion, Long> {
 
     /**
+     * Lista operaciones filtradas solo por tipo, sin rango de fechas.
+     * Usado por AuditoriaService.listarPorOperacion().
+     */
+    Page<AuditoriaOperacion> findByOperacion(String operacion, Pageable pageable);
+
+    /**
      * Lista operaciones de auditoría con filtro opcional
      * por tipo de operación y rango de fechas.
      * Usado por el ADMIN para revisar el log de actividad.

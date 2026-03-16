@@ -1,6 +1,8 @@
 package com.rdam.backend.service;
 
 import com.rdam.backend.exception.CircunscripcionMismatchException;
+import com.rdam.backend.domain.dto.UsuarioInternoResponse;
+import com.rdam.backend.domain.entity.AuditoriaOperacion;
 import com.rdam.backend.domain.entity.Circunscripcion;
 import com.rdam.backend.domain.entity.UsuarioInterno;
 import com.rdam.backend.enums.RolUsuario;
@@ -8,6 +10,9 @@ import com.rdam.backend.repository.CircunscripcionRepository;
 import com.rdam.backend.repository.UsuarioInternoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +36,7 @@ public class UsuarioInternoService {
     private final UsuarioInternoRepository usuarioRepository;
     private final CircunscripcionRepository circunscripcionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
 
     /**
      * Crea un nuevo usuario interno.
@@ -87,6 +93,17 @@ public class UsuarioInternoService {
                 guardado.getId(), guardado.getUsername(),
                 guardado.getRol(), idCircunscripcion);
 
+        // Obtener el admin que ejecuta la acción desde el contexto de seguridad.
+        String actorNombre = resolverActorNombre();
+        Long   actorId     = resolverActorId();
+        auditoriaService.registrar(
+                AuditoriaOperacion.Operaciones.USUARIO_CREADO,
+                "username=" + guardado.getUsername() + " · rol=" + guardado.getRol(),
+                actorId,
+                actorNombre,
+                guardado.getId()
+        );
+
         return guardado;
     }
 
@@ -128,11 +145,35 @@ public class UsuarioInternoService {
         log.info("Estado de usuario modificado. id={} username={} activo={}",
                 guardado.getId(), guardado.getUsername(), nuevoEstado);
 
+        String operacion = nuevoEstado
+                ? AuditoriaOperacion.Operaciones.USUARIO_ACTIVADO
+                : AuditoriaOperacion.Operaciones.USUARIO_DESACTIVADO;
+        auditoriaService.registrar(
+                operacion,
+                "username=" + guardado.getUsername(),
+                idAdminActual,
+                resolverActorNombre(),
+                idUsuario
+        );
+
         return guardado;
     }
 
+    /**
+     * Lista todos los usuarios internos paginados.
+     * JpaRepository ya provee findAll(Pageable) — no requiere query custom.
+     *
+     * @param pageable Configuración de página/orden del cliente.
+     * @return Página de UsuarioInternoResponse (sin password_hash).
+     */
+    @Transactional(readOnly = true)
+    public Page<UsuarioInternoResponse> listarUsuarios(Pageable pageable) {
+        return usuarioRepository.findAll(pageable)
+                                .map(UsuarioInternoResponse::new);
+    }
+
     // -------------------------------------------------------
-    // Helper privado
+    // Helpers privados
     // -------------------------------------------------------
 
     /**
@@ -153,5 +194,31 @@ public class UsuarioInternoService {
                 "Un ADMIN no debe tener circunscripción asignada."
             );
         }
+    }
+
+    /**
+     * Obtiene el username del principal autenticado en el hilo actual.
+     * Usa el SecurityContext para no tener que propagarlo por parámetros.
+     * Si no hay principal (test, tarea automática), devuelve "sistema".
+     */
+    private String resolverActorNombre() {
+        try {
+            Object p = SecurityContextHolder.getContext()
+                                             .getAuthentication()
+                                             .getPrincipal();
+            if (p instanceof UsuarioInterno u) return u.getUsername();
+        } catch (Exception ignored) { /* no hay contexto de seguridad */ }
+        return "sistema";
+    }
+
+    /** Obtiene el ID del principal autenticado, o null si no hay contexto. */
+    private Long resolverActorId() {
+        try {
+            Object p = SecurityContextHolder.getContext()
+                                             .getAuthentication()
+                                             .getPrincipal();
+            if (p instanceof UsuarioInterno u) return u.getId();
+        } catch (Exception ignored) {}
+        return null;
     }
 }

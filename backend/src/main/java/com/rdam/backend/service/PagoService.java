@@ -56,6 +56,9 @@ public class PagoService {
     @Value("${server.base-url:http://localhost:8080}")
     private String serverBaseUrl;
 
+    @Value("${server.public-url:http://localhost}")
+    private String serverPublicUrl;
+
     // Algoritmo HMAC usado por PlusPagos
     private static final String HMAC_ALGORITMO = "HmacSHA256";
 
@@ -189,18 +192,20 @@ public class PagoService {
                                       .toUpperCase();
 
         // URL pública accesible desde el navegador del ciudadano.
-        // apiUrl es la URL interna de Docker (pluspagos-mock:3000) usada
-        // para comunicación entre contenedores.
-        // publicUrl es localhost:3000, la que el browser puede resolver.
-        String urlPago = publicUrl + "/sim/pago/" + idOrden;
+        // El mock Express solo tiene handler en POST / (root).
+        // No existe ruta /sim/pago/:id en el mock — el form debe apuntar al root.
+        String urlPago = publicUrl;   // "http://localhost:3000" → POST /
 
         // URL del backend que el mock llamará al terminar el pago.
         // El mock la desencripta del form y hace POST con el resultado.
         String callbackUrl = serverBaseUrl + "/api/v1/webhooks/pluspagos/callback";
 
-        // URLs de redirección del usuario en el browser
-        String urlExito = serverBaseUrl + "/pago/exito?nro=" + nroTramite;
-        String urlError  = serverBaseUrl + "/pago/error?nro=" + nroTramite;
+        // URLs de redirección del browser tras el pago.
+        // IMPORTANTE: deben usar serverPublicUrl (accesible desde el browser del ciudadano),
+        // NO serverBaseUrl (http://backend:8080, solo resolvible dentro de la red Docker).
+        // Se usa hash-route para que el SPA de React cargue directamente en el portal.
+        String urlExito = serverPublicUrl + "/#/ciudadano";
+        String urlError  = serverPublicUrl + "/#/ciudadano";
 
         Map<String, String> formulario = new LinkedHashMap<>();
 

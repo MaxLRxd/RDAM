@@ -7,6 +7,9 @@ import com.rdam.backend.domain.entity.UsuarioInterno;
 import com.rdam.backend.service.UsuarioInternoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,6 +28,20 @@ import org.springframework.web.bind.annotation.*;
 public class UsuarioInternoController {
 
     private final UsuarioInternoService usuarioService;
+
+    /**
+     * Lista todos los usuarios internos paginados (ADMIN only).
+     *
+     * El SecurityConfig ya restringe /usuarios-internos a ROLE_ADMIN.
+     *
+     * HTTP 200: página de usuarios.
+     */
+    @GetMapping
+    public ResponseEntity<Page<UsuarioInternoResponse>> listar(
+            @PageableDefault(size = 50, sort = "username") Pageable pageable) {
+
+        return ResponseEntity.ok(usuarioService.listarUsuarios(pageable));
+    }
 
     /**
      * Crea un nuevo usuario interno.
