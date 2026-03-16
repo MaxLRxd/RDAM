@@ -204,8 +204,12 @@ public class PagoService {
         // IMPORTANTE: deben usar serverPublicUrl (accesible desde el browser del ciudadano),
         // NO serverBaseUrl (http://backend:8080, solo resolvible dentro de la red Docker).
         // Se usa hash-route para que el SPA de React cargue directamente en el portal.
-        String urlExito = serverPublicUrl + "/#/ciudadano";
-        String urlError  = serverPublicUrl + "/#/ciudadano";
+        //
+        // El query param ?retorno= permite al frontend saber si regresa de un pago exitoso
+        // o rechazado, sin depender del estado de la DB (defense-in-depth).
+        // El frontend parsea window.location.hash para extraerlo y limpiar la URL.
+        String urlExito = serverPublicUrl + "/#/ciudadano?retorno=pagado";
+        String urlError  = serverPublicUrl + "/#/ciudadano?retorno=rechazado";
 
         Map<String, String> formulario = new LinkedHashMap<>();
 

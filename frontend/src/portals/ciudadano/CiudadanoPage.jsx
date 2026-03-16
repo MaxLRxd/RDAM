@@ -13,10 +13,16 @@
  *   consulta el backend para obtener el estado real y navega al step
  *   correspondiente. Esto maneja el caso de "regreso desde PlusPagos".
  *
+ * Retorno desde PlusPagos:
+ *   PagoService.java encripta urlExito/urlError con ?retorno=pagado o ?retorno=rechazado.
+ *   Al montar, se parsea window.location.hash para extraer ese hint.
+ *   - Si hay hint, se hace re-fetch del estado con un breve delay (defensa ante race condition).
+ *   - Se limpia el hint de la URL con replaceState para que no persista en refresh.
+ *
  * Polling:
- *   Cuando el step es 'esperando-cert' (estado PAGADO), el componente
- *   sondea la API cada 30 segundos para detectar cuando el operador
- *   publica el certificado (estado → PUBLICADO).
+ *   - ESPERANDO_CERT (estado PAGADO): polling cada 30 s para detectar PUBLICADO.
+ *   - PENDIENTE con retorno de pago: polling agresivo (2 s, max 10 intentos) por si
+ *     el callback del mock llegó con leve demora respecto al redirect.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -45,7 +51,40 @@ import { MisSolicitudes }  from './MisSolicitudes.jsx'
 
 import styles from './CiudadanoPage.module.css'
 
-const POLL_INTERVAL_MS = 30_000 // 30 segundos
+const POLL_INTERVAL_MS   = 30_000  // 30 s — polling normal (esperando certificado)
+const RETORNO_POLL_MS    = 2_000   // 2 s  — polling agresivo post-pago (defensa race)
+const RETORNO_MAX_TRIES  = 10      // intentos máximos del polling agresivo
+
+/**
+ * Extrae el hint de retorno de pago del hash de la URL y limpia la URL.
+ *
+ * PagoService encripta urlExito / urlError con:
+ *   /#/ciudadano?retorno=pagado
+ *   /#/ciudadano?retorno=rechazado
+ *
+ * El hash en el browser queda como "#/ciudadano?retorno=pagado".
+ * Extraemos el query string del fragmento hash y limpiamos la URL
+ * para que un refresh posterior no re-dispare la lógica de retorno.
+ *
+ * @returns {'pagado'|'rechazado'|null}
+ */
+function extraerRetornoPago() {
+  const hash = window.location.hash        // "#/ciudadano?retorno=pagado"
+  const signo = hash.indexOf('?')
+  if (signo === -1) return null
+
+  const qs = hash.slice(signo + 1)        // "retorno=pagado"
+  const params = new URLSearchParams(qs)
+  const retorno = params.get('retorno')   // "pagado" | "rechazado" | null
+
+  if (retorno === 'pagado' || retorno === 'rechazado') {
+    // Limpiar el hint de la URL para que no persista al refrescar
+    const hashBase = hash.slice(0, signo) // "#/ciudadano"
+    window.history.replaceState(null, '', hashBase)
+    return retorno
+  }
+  return null
+}
 
 export function CiudadanoPage() {
   const ctx           = useCiudadano()
@@ -56,15 +95,28 @@ export function CiudadanoPage() {
   const [solicitudData, setSolicitudData] = useState(null) // datos del backend
   const pollTimer = useRef(null)
 
-  // ─── Inicialización: recuperar sesión desde localStorage ────────────────
+  // ─── Inicialización: recuperar sesión y manejar retorno de PlusPagos ────
 
   useEffect(() => {
     async function init() {
+      // Detectar si estamos regresando de la pasarela de pago.
+      // Esto ocurre cuando el mock redirige a /#/ciudadano?retorno=pagado|rechazado.
+      const retornoPago = extraerRetornoPago()
+
       if (ctx.tokenAcceso && ctx.nroTramite) {
         try {
           const data = await consultarEstado(ctx.nroTramite, ctx.tokenAcceso)
           setSolicitudData(data)
-          setStep(stepFromEstado(data.estado))
+          const nextStep = stepFromEstado(data.estado)
+          setStep(nextStep)
+
+          // Si regresamos de la pasarela pero el estado sigue siendo PENDIENTE,
+          // el callback pudo haber llegado con un leve retraso (race condition residual).
+          // Iniciamos un polling agresivo de corto plazo para capturarlo.
+          if (retornoPago && nextStep === STEPS.PENDIENTE) {
+            iniciarPollingRetorno()
+          }
+
         } catch {
           // Si el token expiró o la solicitud no existe, ir al form
           ctx.clearSesion()
@@ -78,7 +130,7 @@ export function CiudadanoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ─── Polling cuando está esperando el certificado ───────────────────────
+  // ─── Polling cuando está esperando el certificado (normal, 30 s) ────────
 
   useEffect(() => {
     if (step === STEPS.ESPERANDO_CERT && ctx.tokenAcceso && ctx.nroTramite) {
@@ -105,6 +157,48 @@ export function CiudadanoPage() {
       if (pollTimer.current) clearInterval(pollTimer.current)
     }
   }, [step, ctx.tokenAcceso, ctx.nroTramite, showToast])
+
+  // ─── Polling agresivo post-retorno de pasarela ───────────────────────────
+  //
+  // Se activa solo cuando init() detectó ?retorno=pagado|rechazado en la URL
+  // pero el estado todavía es PENDIENTE (race condition residual: el callback
+  // llegó al backend con más demora de lo normal).
+  //
+  // Sondea cada 2 s hasta RETORNO_MAX_TRIES intentos.
+  // En cuanto el estado cambia (PAGADO o VENCIDO), actualiza la UI y se detiene.
+  // Pasados los intentos sin cambio, se detiene igualmente (no spam infinito).
+
+  function iniciarPollingRetorno() {
+    let intentos = 0
+    const timer = setInterval(async () => {
+      intentos++
+      try {
+        const data = await consultarEstado(ctx.nroTramite, ctx.tokenAcceso)
+        const nextStep = stepFromEstado(data.estado)
+
+        if (nextStep !== STEPS.PENDIENTE) {
+          // Estado cambió — actualizar UI y detener poll agresivo
+          setSolicitudData(data)
+          setStep(nextStep)
+
+          if (data.estado === ESTADOS.PAGADO) {
+            showToast('✅ Pago confirmado. Su solicitud está siendo procesada.', 'ok', 6000)
+          } else if (data.estado === ESTADOS.VENCIDO) {
+            showToast('⚠️ El pago fue rechazado. La solicitud fue cancelada.', 'error', 8000)
+          }
+
+          clearInterval(timer)
+          return
+        }
+      } catch {
+        // Ignorar errores transitorios
+      }
+
+      if (intentos >= RETORNO_MAX_TRIES) {
+        clearInterval(timer) // Agotar intentos sin cambio — detener
+      }
+    }, RETORNO_POLL_MS)
+  }
 
   // ─── Handlers de cada step ──────────────────────────────────────────────
 

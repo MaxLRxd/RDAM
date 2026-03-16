@@ -126,8 +126,8 @@ app.post('/procesar-pago', async (req, res) => {
   }
   
   // Determinar resultado según tarjeta
-  const cardClean = cardNumber.replace(/\\s/g, '');
-  const cardInfo = TEST_CARDS[cardClean] || { status: 'success', name: 'Tarjeta Genérica' };
+  const cardClean = cardNumber.replace(/\D/g, '');
+  const cardInfo = TEST_CARDS[cardClean] || { status: 'rejected', name: 'Tarjeta Desconocida' }; // FIX: unknown card → rejected (not approved)
   
   // Simular delay de procesamiento
   await new Promise(r => setTimeout(r, 1500));
@@ -146,7 +146,9 @@ app.post('/procesar-pago', async (req, res) => {
   // Enviar callback al comercio
   const callbackUrl = txn.status === 'approved' ? txn.callbackSuccess : txn.callbackCancel;
   if (callbackUrl) {
-    sendCallback(callbackUrl, txn);
+    // FIX: await ensures the backend processes the callback BEFORE the browser is redirected.
+    // Without this, the browser navigated back to the app while state was still PENDIENTE (race condition).
+    await sendCallback(callbackUrl, txn);
   }
   
   // Redirigir al usuario
@@ -275,15 +277,39 @@ function getPaymentPage(txn) {
     '</style></head><body>' +
     '<div class="card"><h1>PlusPagos</h1><p style="color:#64748b">Completá los datos de tu tarjeta</p>' +
     '<div class="amount">$ ' + txn.monto + '</div>' +
-    '<form action="/procesar-pago" method="POST">' +
+    '<form id="payForm" action="/procesar-pago" method="POST">' +
     '<input type="hidden" name="transactionId" value="' + txn.id + '">' +
-    '<div class="form-group"><label>Número de tarjeta</label><input type="text" name="cardNumber" placeholder="4242 4242 4242 4242" required maxlength="19"></div>' +
-    '<div class="form-group"><label>Nombre en la tarjeta</label><input type="text" name="cardName" placeholder="JUAN PEREZ" required></div>' +
-    '<div class="row"><div class="form-group"><label>Vencimiento</label><input type="text" name="cardExpiry" placeholder="MM/AA" required maxlength="5"></div>' +
-    '<div class="form-group"><label>CVV</label><input type="text" name="cardCvv" placeholder="123" required maxlength="4"></div></div>' +
+    '<input type="hidden" name="cardNumber" id="cardNumberHidden">' +
+    '<div class="form-group"><label>Número de tarjeta</label><input type="text" id="cardNumberDisplay" placeholder="4242 4242 4242 4242" required maxlength="19" inputmode="numeric" autocomplete="cc-number"></div>' +
+    '<div class="form-group"><label>Nombre en la tarjeta</label><input type="text" name="cardName" placeholder="JUAN PEREZ" required autocomplete="cc-name"></div>' +
+    '<div class="row"><div class="form-group"><label>Vencimiento</label><input type="text" name="cardExpiry" id="cardExpiry" placeholder="MM/AA" required maxlength="5" inputmode="numeric" autocomplete="cc-exp"></div>' +
+    '<div class="form-group"><label>CVV</label><input type="text" name="cardCvv" placeholder="123" required maxlength="4" inputmode="numeric" autocomplete="cc-csc"></div></div>' +
     '<button type="submit" class="btn">Pagar $ ' + txn.monto + '</button></form>' +
     '<p class="hint">💡 Usá 4242... para aprobar o 4000...0002 para rechazar</p>' +
-    '</div></body></html>';
+    '</div>' +
+    '<script>(function(){' +
+    'var disp=document.getElementById("cardNumberDisplay");' +
+    'var hidden=document.getElementById("cardNumberHidden");' +
+    'disp.addEventListener("input",function(){' +
+    '  var digits=this.value.replace(/\\D/g,"").slice(0,16);' +
+    '  var fmt="";for(var i=0;i<digits.length;i++){if(i>0&&i%4===0)fmt+=" ";fmt+=digits[i];}' +
+    '  this.value=fmt;hidden.value=digits;' +
+    '});' +
+    'var exp=document.getElementById("cardExpiry");' +
+    'var prevExp="";' +
+    'exp.addEventListener("input",function(){' +
+    '  var raw=this.value;' +
+    '  var digits=raw.replace(/\\D/g,"").slice(0,4);' +
+    '  var deleting=raw.length<prevExp.length;' +
+    '  var v=digits.length>2?digits.slice(0,2)+"/"+digits.slice(2):digits;' +
+    '  if(deleting&&raw===digits.slice(0,2)+"/")v=digits.slice(0,1);' +
+    '  this.value=v;prevExp=v;' +
+    '});' +
+    'document.getElementById("payForm").addEventListener("submit",function(){' +
+    '  hidden.value=disp.value.replace(/\\D/g,"");' +
+    '});' +
+    '})();</script>' +
+    '</body></html>';
 }
 
 function getResultPage(txn) {

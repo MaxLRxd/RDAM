@@ -221,7 +221,12 @@ public class SolicitudService {
             .findByNroTramite(nroTramite)
             .orElseThrow(() -> new SolicitudNotFoundException(nroTramite));
 
-        return new SolicitudEstadoResponse(solicitud, baseUrl);
+        // FIX: usar publicUrl, no baseUrl.
+        // baseUrl = http://backend:8080 (red interna Docker — invisible al browser).
+        // publicUrl = http://localhost (proxy nginx — accesible desde el browser).
+        // SolicitudEstadoResponse construye linkDescarga con esta URL;
+        // si se pasara baseUrl el browser no puede resolver el hostname "backend".
+        return new SolicitudEstadoResponse(solicitud, publicUrl);
     }
 
     /**

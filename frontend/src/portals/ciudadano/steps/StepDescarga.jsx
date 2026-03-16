@@ -17,10 +17,39 @@ import { Button } from '../../../components/ui/Button.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import styles from './Steps.module.css'
 
+/**
+ * Normaliza la URL de descarga para garantizar que use el origen del
+ * navegador, independientemente del hostname que devuelva el backend.
+ *
+ * Por qué: el backend construye linkDescarga con SERVER_PUBLIC_URL.
+ * Si esa variable apuntara a la red interna Docker ("http://backend:8080"),
+ * el browser no resolvería el hostname y la descarga fallaría con DNS_PROBE.
+ *
+ * La defensa: si el origen de la URL difiere del origen del browser,
+ * se reemplaza preservando el path (que contiene el token de descarga).
+ *
+ * Ejemplo:
+ *   linkDescarga = "http://backend:8080/api/v1/certificados/abc123"
+ *   → window.location.origin + "/api/v1/certificados/abc123"
+ *   → "http://localhost/api/v1/certificados/abc123"  ✓
+ */
+function normalizarLink(link) {
+  if (!link) return null
+  try {
+    const url = new URL(link)
+    if (url.origin === window.location.origin) return link
+    return window.location.origin + url.pathname + url.search + url.hash
+  } catch {
+    return link // URL relativa o inválida: devolver tal cual
+  }
+}
+
 export function StepDescarga({ nroTramite, linkDescarga, fechaEmision }) {
+  const urlDescarga = normalizarLink(linkDescarga)
+
   function handleDescargar() {
-    if (linkDescarga) {
-      window.open(linkDescarga, '_blank', 'noopener,noreferrer')
+    if (urlDescarga) {
+      window.open(urlDescarga, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -58,7 +87,7 @@ export function StepDescarga({ nroTramite, linkDescarga, fechaEmision }) {
           plazo, el archivo será eliminado del servidor.
         </Alert>
 
-        <Button fullWidth onClick={handleDescargar} disabled={!linkDescarga}>
+        <Button fullWidth onClick={handleDescargar} disabled={!urlDescarga}>
           ⬇ Descargar Certificado
         </Button>
 
