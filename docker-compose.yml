@@ -57,12 +57,15 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
-             "-u", "root", "-proot"]
+      # mysqladmin ping sin credenciales: solo chequea conectividad TCP.
+      # Evita falsos fallos por "Access denied" durante la fase de init
+      # donde MySQL arranca momentáneamente sin contraseña.
+      # 127.0.0.1 fuerza TCP (localhost puede intentar socket Unix y fallar).
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 40s
+      start_period: 90s
     networks:
       - rdam-network
 
