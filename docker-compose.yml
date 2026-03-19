@@ -65,7 +65,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 90s
+      start_period: 180s
     networks:
       - rdam-network
 
@@ -211,9 +211,16 @@ services:
       PLUSPAGOS_PUBLIC_URL: http://localhost:3000
       PAYMENT_MODE: sim
       SIM_AUTO_APPROVE: "false"
+    # restart: on-failure hace que Docker reinicie el backend si Spring Boot
+    # crashea porque MySQL todavía no terminó de inicializarse.
+    # Es más robusto que depender del health check timing de MySQL.
+    restart: on-failure
     depends_on:
       mysql:
-        condition: service_healthy
+        # service_started = MySQL container creado, sin importar si está listo.
+        # El backend puede fallar en el primer intento; restart: on-failure
+        # lo relanza automáticamente hasta que MySQL esté disponible.
+        condition: service_started
       redis:
         condition: service_healthy
       minio:
