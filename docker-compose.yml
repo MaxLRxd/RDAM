@@ -61,7 +61,8 @@ services:
              "-u", "root", "-proot"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 40s
     networks:
       - rdam-network
 
