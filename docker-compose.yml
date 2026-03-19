@@ -199,13 +199,8 @@ services:
       REDIS_PASSWORD: ""
       # MinIO
       MINIO_ENDPOINT: http://minio:9000
-      # Mail
-      SMTP_HOST: mailhog
-      SMTP_PORT: 1025
-      SMTP_USERNAME: ""
-      SMTP_PASSWORD: ""
-      SMTP_AUTH: "false"
-      SMTP_STARTTLS: "false"
+      # Mail — host, port, auth y starttls hardcodeados en application.properties.
+      # SMTP_USERNAME y SMTP_PASSWORD se leen del env_file (backend/.env).
       # PlusPagos — URL interna (Spring Boot → mock dentro de la red Docker)
       PLUSPAGOS_API_URL: http://pluspagos-mock:3000
       # URL pública — la que se le entrega al ciudadano para redirigir al pago
